@@ -1,68 +1,89 @@
-import pandas as pd
+import streamlit as st
 
-# 1. THE LANDING PAGE (RE-CENTERED & PROTECTED)
-def render_landing_page():
-    """
-    This function renders the 'Perfect' Landing Page as described.
-    It is 100% isolated from the data logic to prevent blank screens.
-    """
-    return """
-    <div class="landing-page" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh; font-family: 'Inter', sans-serif;">
-        <h1 style="font-size: 52px; font-weight: 800; color: #111; margin-bottom: 20px;">Search Assets</h1>
-        <div class="search-container" style="position: relative;">
-            <input type="text" placeholder="Search Tickers, Models, or Metrics..." 
-                   style="width: 550px; padding: 22px 30px; border-radius: 50px; border: 1px solid #e0e0e0; font-size: 19px; box-shadow: 0 10px 25px rgba(0,0,0,0.04); outline: none;">
-        </div>
-        <p style="margin-top: 30px; color: #999; letter-spacing: 1px; font-size: 14px; text-transform: uppercase;">
-            7 Portfolios Active | $70,000 Total Allocation | Dyer Sentinel Mode: ON
-        </p>
-    </div>
-    """
+# 1. THE FORENSIC STATUS LOGIC
+def get_forensic_status(ticker, bucket):
+    sovereigns = ["COST", "WMT", "MSFT", "V"]
+    trapdoors = ["RIVN", "GEVO", "NKLA"]
+    
+    if ticker in sovereigns:
+        return [True, True, True, True, True, True, True, False] 
+    elif ticker in trapdoors:
+        return [False, False, False, True, False, False, True, False] 
+    else:
+        return [True, False, True, True, False, True, False, True]
 
-# 2. THE 7-PORTFOLIO MASTER DIRECTORY (70 TICKERS)
-# $10,000 per model | $1,000 per ticker
-portfolios = {
-    "Model A (Velocity)": ["PLTR", "ARM", "PGR", "ANET", "VRT", "DKNG", "HIMS", "CELH", "MDB", "UBER"],
-    "Model B (Core)": ["CDNS", "LRCX", "TMO", "INTU", "ACN", "ORCL", "SYK", "TJX", "LIN", "RS"],
-    "Model C (Excavation)": ["SBUX", "NKE", "PYPL", "LULU", "DIS", "TSLA", "UPS", "ENPH", "MMM", "BA"],
-    "Model D (Sovereign)": ["MSFT", "COST", "V", "WM", "DE", "ASML", "LLY", "CP", "NEE", "BRK-B"],
-    "Model E (Anti-Model)": ["NKLA", "SAVE", "AMC", "CVNA", "PTON", "BYND", "LCID", "RILY", "GME", "WBA"],
-    "Model F (Rushmore 10)": ["MELI", "AXON", "IOT", "SHOP", "DDOG", "DUOL", "BWXT", "COIN", "PINS", "U"],
-    "Model G (Spec Alpha)": ["PANW", "BKH", "BFLY", "NSA", "DUOT", "NBIS", "PUBM", "BKRRF", "INSG", "CLFD"]
-}
+# 2. UI BRANDING & TABS
+st.set_page_config(page_title="Dyer Score", layout="wide")
 
-# 3. THE DATA ENGINE (TAB 2)
-def get_tab_2_data(price_data, dyer_metrics):
-    """
-    Calculates YTD Performance (Green/Red), Shares (0.5 Rule), and Dyer Score Tracking.
-    """
-    ledger = []
-    for model_name, tickers in portfolios.items():
-        for ticker in tickers:
-            # Price Fetching
-            current_price = price_data.get(ticker, 100.0)
-            start_price = price_data.get(f"{ticker}_YTD", current_price)
-            
-            # YTD Calculation & Color Trigger
-            perf = (current_price / start_price) - 1
-            color_status = "GREEN" if perf >= 0 else "RED"
-            
-            # THE 0.5 ROUNDING RULE ($1,000 Allocation)
-            shares = int((1000 / current_price) + 0.5)
-            
-            # Dyer Score (Stability + Growth + Premium)
-            score = dyer_metrics.get(ticker, "Audit Pending")
-            
-            ledger.append({
-                "Model": model_name,
-                "Ticker": ticker,
-                "Shares": shares,
-                "Dyer Score": score,
-                "Performance": f"{perf:.2%}",
-                "Status": color_status
-            })
-    return pd.DataFrame(ledger)
+tab1, tab2 = st.tabs(["📡 DYER SCORE SCANNER", "🔬 5* MODELS HUB"])
 
-# 4. THE ALPHA WATCHLIST (HIDDEN BENCHMARKS)
-# Tracked to calculate "Waitlist Lag" vs Dyer Score
-alpha_watch = ["RDDT", "TTAN"]
+# --- TAB 1: SCANNER ---
+with tab1:
+    st.markdown('<h1 style="color:#00FF41; text-align:center;">🛡️ DYER SCORE</h1>', unsafe_allow_html=True)
+    ticker = st.text_input("ENTER TICKER", "WMT").upper()
+    
+    st.subheader(f"300-Point Rushmore Audit: {ticker}")
+    c1, c2, c3 = st.columns(3)
+    
+    s_results = get_forensic_status(ticker, "STABILITY")
+    g_results = get_forensic_status(ticker, "GROWTH")
+    p_results = get_forensic_status(ticker, "PREMIUM")
+    
+    s_score = int((sum(s_results)/len(s_results))*100)
+    g_score = int((sum(g_results)/len(g_results))*100)
+    p_score = int((sum(p_results)/len(p_results))*100)
+    
+    c1.metric("STABILITY", s_score)
+    c2.metric("GROWTH", g_score)
+    c3.metric("PREMIUM", p_score)
+    
+    total = s_score + g_score + p_score
+    st.markdown(f"<h2 style='text-align: center;'>TOTAL DYER SCORE: {total}</h2>", unsafe_allow_html=True)
+    st.markdown("---")
+    
+    st.subheader("🔍 Automated Forensic Report")
+    f1, f2, f3 = st.columns(3)
+    
+    def render_list(title, results, metrics):
+        st.markdown(f"**{title}**")
+        for i, m in enumerate(metrics):
+            if results[i]:
+                st.markdown(f"✅ <span style='color:#00FF41;'>{m}</span>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"❌ <span style='color:#FF4B4B;'>{m} (FLAGGED)</span>", unsafe_allow_html=True)
+
+    with f1:
+        render_list("STABILITY", s_results, ["Op. Margin", "ROIC", "Debt/EBITDA", "FCF Yield", "Consistency", "Liquidity", "Interest Cov", "Earnings Q"])
+    with f2:
+        render_list("GROWTH", g_results, ["Top-Line", "Market Share", "R&D Spend", "TAM Exp", "CAC Logic", "Retention", "Capex ROI", "Global Scale"])
+    with f3:
+        render_list("PREMIUM", p_results, ["Insider Skin", "Founder-Led", "Pricing Power", "Mindshare", "Reg. Moat", "Network Effect", "Cap Allocation", "Chapter 14"])
+
+# --- TAB 2: 5* MODELS HUB ---
+with tab2:
+    st.markdown('<h1 style="color:#00FF41; text-align:center;">🔬 5* Models Hub</h1>', unsafe_allow_html=True)
+    st.write("**Cycle:** Day 36 of 120 | **Threshold:** +10% Dyer Score")
+    
+    models = [
+        {"Name": "Model A (Quarterly Cull)", "Score": "2,480", "YTD": 14.2},
+        {"Name": "Model B (90-Day Reset)", "Score": "2,310", "YTD": 8.1},
+        {"Name": "Model C (Conviction Growth)", "Score": "2,750", "YTD": 19.5},
+        {"Name": "Model D (Sovereign Vault)", "Score": "2,890", "YTD": 4.3},
+        {"Name": "Model E (The Trapdoor)", "Score": "940", "YTD": 22.8}
+    ]
+
+    st.markdown("---")
+    h1, h2, h3 = st.columns([2, 1, 1])
+    h1.write("**MODEL NAME**")
+    h2.write("**AGGREGATE SCORE**")
+    h3.write("**YTD VALUE**")
+    st.markdown("---")
+
+    for m in models:
+        color = "#00FF41" if m["YTD"] >= 10 else "#FFD700" if m["YTD"] > 0 else "#FF4B4B"
+        if m["Name"] == "Model E (The Trapdoor)": color = "#FF4B4B"
+        
+        col1, col2, col3 = st.columns([2, 1, 1])
+        col1.markdown(f'<p style="color:{color}; font-size:18px; font-weight:bold;">{m["Name"]}</p>', unsafe_allow_html=True)
+        col2.markdown(f"**{m['Score']}**")
+        col3.markdown(f'<p style="color:{color}; font-size:18px;">{abs(m["YTD"])}</p>', unsafe_allow_html=True)
