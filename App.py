@@ -2,67 +2,70 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 
-# Page Config for professional look
 st.set_page_config(page_title="Dyer Score Sentinel", page_icon="🛡️")
 
-# --- Sovereign ID Logic ---
+# Initialize log
 if 'query_log' not in st.session_state:
     st.session_state.query_log = []
 
 st.sidebar.title("🛡️ Sentinel Access")
 sovereign_id = st.sidebar.text_input("Enter Sovereign ID", value="SOVEREIGN-01")
-is_admin = sovereign_id == "SOVEREIGN-00" # Your Admin ID
+is_admin = sovereign_id == "SOVEREIGN-00"
 
-# --- The App Interface ---
 st.title("The Dyer Score™")
 st.markdown("---")
 
-ticker = st.text_input("Enter Ticker for Audit", value="COST").upper()
+ticker = st.text_input("Enter Ticker (e.g., WMT, COIN, COST)", value="WMT").upper()
 
 if ticker:
     try:
-        # Data Capture
+        # Pulling Data
         stock = yf.Ticker(ticker)
         info = stock.info
         
-        # 1. Stability (Asset Quality) - Auto-calculated
-        current_ratio = info.get('currentRatio', 1.0)
-        debt_to_equity = info.get('debtToEquity', 100)
-        stability_base = 100 * (min(current_ratio, 2.0) / 2.0)
+        # 1. Stability (Data-Driven)
+        de_ratio = info.get('debtToEquity', 100)
+        stability_score = max(0, 100 - (de_ratio / 5))
         
-        # 2. Premium & Growth - Manual Forensic Inputs
-        st.subheader("Forensic Inputs")
+        st.subheader(f"Forensic Audit: {ticker}")
         col1, col2 = st.columns(2)
+        
         with col1:
-            management_trust = st.slider("Management Quality (0-100)", 0, 100, 80)
+            # Added unique key tied to ticker
+            management_trust = st.slider(
+                "Management Quality", 0, 100, 85, 
+                key=f"mgmt_{ticker}"
+            )
+        
         with col2:
-            moat_strength = st.select_slider("Moat Capacity", options=["Decaying", "Stable", "Expanding"])
+            # Added unique key tied to ticker + default 'Stable'
+            moat_status = st.select_slider(
+                "Moat Capacity", 
+                options=["Decaying", "Stable", "Expanding"],
+                value="Stable",
+                key=f"moat_{ticker}"
+            )
         
-        moat_bonus = {"Decaying": 0, "Stable": 50, "Expanding": 100}[moat_strength]
+        # Logic for Moat Points
+        moat_points = {"Decaying": 0, "Stable": 50, "Expanding": 100}[moat_status]
         
-        # --- THE DYER SCORE CALCULATION ---
-        # 300 Point Scale: 100 Stability + 100 Management + 100 Moat/Growth
-        dyer_score = int(stability_base + (management_trust) + (moat_bonus * 0.5))
+        # FINAL SCORE
+        dyer_score = int(stability_score + management_trust + moat_points)
         
-        # Display the Score
-        st.markdown(f"<h1 style='text-align: center;'>{dyer_score} / 300</h1>", unsafe_allow_html=True)
+        # Big Score Display
+        st.markdown(f"<h1 style='text-align: center; color: #4A90E2;'>Dyer Score: {dyer_score} / 300</h1>", unsafe_allow_html=True)
         
-        # Judgment logic
-        if dyer_score >= 250:
-            st.success("🟢 SOVEREIGN STATUS: Strong Expansion Capacity.")
-        elif dyer_score >= 150:
-            st.warning("🟡 MONITOR: Dyer Score shows neutral divergence.")
+        # Verdicts
+        if dyer_score >= 240:
+            st.success("🟢 SOVEREIGN STATUS")
+        elif dyer_score >= 160:
+            st.warning("🟡 MONITOR STATUS")
         else:
-            st.error("🔴 TRAPDOOR: Asset is failing the Dyer Metric. Avoid.")
-
-        # Log the Query
-        st.session_state.query_log.append({"ID": sovereign_id, "Ticker": ticker, "Score": dyer_score})
+            st.error("🔴 TRAPDOOR ALERT")
 
     except Exception as e:
-        st.error(f"Ticker not found or data unavailable: {e}")
+        st.error(f"Waiting for valid Ticker... (Error: {e})")
 
-# --- Admin View ---
+# Admin Log
 if is_admin:
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("Audit Log (Admin Only)")
-    st.sidebar.write(pd.DataFrame(st.session_state.query_log))
+    st.sidebar.write("### Auditor Log", pd.DataFrame(st.session_state.query_log))
