@@ -1,85 +1,77 @@
 import streamlit as st
 import pandas as pd
 
-# 1. THE UNIVERSE ENGINE: Unique Baseline Logic
-def get_universe_score(ticker):
-    # Sector-based fundamental weighting for the Dyer Metric
-    logic = {
-        "SOVEREIGN": ["COST", "MSFT", "WM", "V", "PG", "WMT", "JPM"],
-        "GROWTH_CAP": ["NVDA", "AMZN", "META", "GOOGL", "AAPL"],
-        "TRAPDOOR": ["RIVN", "GEVO", "NKLA", "LCID", "SAVE", "AMC"]
+# 1. THE RUSHMORE ENGINE (300 POINT MAX)
+def get_rushmore_score(ticker):
+    # Sector Specific Archetypes
+    profiles = {
+        "SOVEREIGN": ["COST", "WMT", "PG", "JPM", "V"], # Stability Heavy
+        "GROWTH_LEADER": ["NVDA", "MSFT", "META", "AMZN"], # Growth/Moat Heavy
+        "SPEC_TECH": ["RIVN", "GEVO", "PLTR", "TSLA"], # Growth Heavy, Stability Low
+        "TRAPDOOR": ["NKLA", "AMC", "SAVE", "CVNA"] # Failed quality
     }
     
-    if ticker in logic["SOVEREIGN"]:
-        return {"S": 92, "G": 80, "P": 95} # High Stability/Moat
-    elif ticker in logic["GROWTH_CAP"]:
-        return {"S": 75, "G": 98, "P": 90} # High Expansion Capacity
-    elif ticker in logic["TRAPDOOR"]:
-        return {"S": 15, "G": 45, "P": 12} # Low Asset Quality
+    # Logic to ensure unique scores for the whole universe
+    h = sum(ord(c) for c in ticker)
+    
+    if ticker in profiles["SOVEREIGN"]:
+        s, g, p = (85 + h%15), (70 + h%20), (88 + h%10)
+    elif ticker in profiles["GROWTH_LEADER"]:
+        s, g, p = (75 + h%15), (90 + h%10), (90 + h%10)
+    elif ticker in profiles["SPEC_TECH"]:
+        s, g, p = (20 + h%20), (60 + h%30), (30 + h%20)
+    elif ticker in profiles["TRAPDOOR"]:
+        s, g, p = (5 + h%10), (15 + h%20), (5 + h%15)
     else:
-        # Generate a unique hash-based score for any unknown ticker
-        # Ensures no stock in the "whole universe" shows as a flat 150
-        hash_val = sum(ord(c) for c in ticker)
-        s_base = (hash_val % 40) + 30 
-        g_base = (hash_val % 50) + 20
-        p_base = (hash_val % 30) + 10
-        return {"S": s_base, "G": g_base, "P": p_base}
+        # Dynamic calculation for any unknown ticker to avoid "150"
+        s = (h % 60) + 30
+        g = (h % 70) + 20
+        p = (h % 50) + 10
+        
+    return {"S": s, "G": g, "P": p}
 
-# 2. PERSISTENT STORAGE
+# 2. PERSISTENCE SETUP
 if 'audit_db' not in st.session_state:
     st.session_state.audit_db = {}
 
-# 3. UI NAVIGATION
-st.set_page_config(page_title="Dyer Sentinel", layout="wide")
-page = st.sidebar.radio("NAVIGATE", ["📡 DYER SCANNER", "🔬 5* MODELS HUB"])
+st.sidebar.title("TERMINAL")
+page = st.sidebar.radio("NAVIGATE", ["📡 SCANNER", "🔬 5* MODELS"])
 
-# --- PAGE 1: SEARCH & SCAN ---
-if page == "📡 DYER SCANNER":
+# --- PAGE 1: SCANNER ---
+if page == "📡 SCANNER":
     st.markdown('<h1 style="color:#00FF41; text-align:center;">🛡️ DYER SENTINEL</h1>', unsafe_allow_html=True)
     
-    ticker = st.text_input("SEARCH UNIVERSE (Ticker)", "WMT").upper()
+    ticker = st.text_input("SEARCH TICKER", "WMT").upper()
     
-    # Logic: Memory -> Universe Engine -> Defaults
-    if ticker in st.session_state.audit_db:
-        vals = st.session_state.audit_db[ticker]
-    else:
-        vals = get_universe_score(ticker)
-
-    st.subheader(f"Forensic Audit: {ticker}")
+    # Pull current data
+    current = st.session_state.audit_db.get(ticker, get_rushmore_score(ticker))
+    
+    st.subheader(f"300-Point Audit: {ticker}")
     c1, c2, c3 = st.columns(3)
     
-    s = c1.number_input("STABILITY (Asset Quality)", 0, 100, vals["S"], key=f"{ticker}_s")
-    g = c2.number_input("GROWTH (Expansion)", 0, 100, vals["G"], key=f"{ticker}_g")
-    p = c3.number_input("PREMIUM (Management/Moat)", 0, 100, vals["P"], key=f"{ticker}_p")
+    # Input Buckets
+    s = c1.number_input("STABILITY (/100)", 0, 100, current["S"], key=f"{ticker}_s")
+    g = c2.number_input("GROWTH (/100)", 0, 100, current["G"], key=f"{ticker}_g")
+    p = c3.number_input("PREMIUM (/100)", 0, 100, current["P"], key=f"{ticker}_p")
     
     total = s + g + p
     
-    if st.button("LOCK AUDIT"):
+    if st.button("LOCK FORENSIC DATA"):
         st.session_state.audit_db[ticker] = {"S": s, "G": g, "P": p, "Total": total}
-        st.success(f"Dyer Score for {ticker} synced at {total}")
+        st.success(f"Audit for {ticker} synced.")
 
-    st.markdown(f"## DYER SCORE: **{total}**")
+    st.metric("Total Rushmore Score", f"{total} / 300")
 
-# --- PAGE 2: PERFORMANCE HUB ---
-elif page == "🔬 5* MODELS HUB":
+# --- PAGE 2: MODELS ---
+elif page == "🔬 5* MODELS":
     st.title("🔬 5* Models Performance")
-    st.write("Current 120-Day Cycle: **Day 36**")
+    # Pro-rated Cycle Tracking
+    st.info("Rebalance Audit: Every 4 Months (120 Days). Target: +10% Dyer Score.")
     
-    # Simplified Performance View
-    models = [
-        {"Model": "Model A (Cull)", "Score": 268, "120d_Perf": 14.2},
-        {"Model": "Model B (Reset)", "Score": 242, "120d_Perf": 8.1},
-        {"Model": "Model C", "Score": 275, "120d_Perf": 19.5},
-        {"Model": "Model D", "Score": 255, "120d_Perf": 4.3},
-        {"Model": "Model E (Anti)", "Score": 118, "120d_Perf": 22.8}
-    ]
-    
-    for m in models:
-        # 10% Improvement Flag Logic
-        is_passing = m["120d_Perf"] >= 10
-        color = "#00FF41" if is_passing else "#FF4B4B" if m["120d_Perf"] < 0 else "#FFD700"
-        
-        col1, col2, col3 = st.columns([2, 1, 1])
-        col1.markdown(f'<p style="color:{color}; font-size:20px; font-weight:bold;">{m["Model"]}</p>', unsafe_allow_html=True)
-        col2.write(f"Aggregate: {m['Score']}")
-        col3.write(f"Performance: {m['120d_Perf']}")
+    # This section now pulls directly from your audit_db if data exists
+    if st.session_state.audit_db:
+        st.write("### Active Audits")
+        df = pd.DataFrame.from_dict(st.session_state.audit_db, orient='index')
+        st.table(df[['Total']])
+    else:
+        st.write("No active audits found. Start at the Scanner.")
