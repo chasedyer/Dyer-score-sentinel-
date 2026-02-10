@@ -1,82 +1,64 @@
 import streamlit as st
-import yfinance as yf
+import pandas as pd
 
 # --- UI CONFIG ---
-st.set_page_config(page_title="Dyer Sentinel", layout="centered")
+st.set_page_config(page_title="Dyer Research Lab", layout="wide")
 
-# --- CUSTOM THEME (TRAFFIC LIGHT LOGIC) ---
-def apply_style(score):
-    if score < 150:
-        bg_color, text = "#721c24", "🚨 TRAPDOOR SELL" # Deep Red
-    elif score >= 200:
-        bg_color, text = "#155724", "💎 SOVEREIGN BUY" # Emerald Green
-    else:
-        bg_color, text = "#856404", "⚖️ AUDIT HOLD"    # Amber
-    
-    st.markdown(f"""
-        <style>
-        .stApp {{ background-color: #0E1117; }}
-        .verdict-banner {{
-            background-color: {bg_color};
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            color: white;
-            font-weight: bold;
-            font-size: 24px;
-            margin-bottom: 20px;
-        }}
-        </style>
-        <div class="verdict-banner">{text}</div>
+# --- CUSTOM CSS FOR CLEAN CARDS ---
+st.markdown("""
+    <style>
+    .model-card {
+        background-color: #161B22;
+        border: 1px solid #30363D;
+        padding: 20px;
+        border-radius: 12px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .status-pass { color: #238636; font-weight: bold; }
+    .status-fail { color: #DA3633; font-weight: bold; }
+    </style>
     """, unsafe_allow_html=True)
-    return text
 
-# --- APP LOGIC ---
-st.title("🛡️ Dyer Sentinel Terminal")
-ticker = st.text_input("SCAN TICKER", value="COST").upper()
+# --- NAVIGATION ---
+nav = st.sidebar.radio("Lab Navigation", ["🏛️ Research Homepage", "📡 Asset Scanner"])
 
-if ticker:
-    try:
-        stock = yf.Ticker(ticker)
-        info = stock.info
-        
-        # 1. CORE FORENSIC INPUTS
-        st.subheader("Forensic Inputs")
-        mgmt = st.slider("Management Quality", 0, 100, 85)
-        moat = st.select_slider("Moat Strength", options=["Decaying", "Stable", "Expanding"], value="Stable")
-        moat_pts = {"Decaying": 0, "Stable": 50, "Expanding": 100}[moat]
-        
-        # 2. THE DYER SCORE (Rushmore Metric)
-        # Simplified for clarity: Stability + Management + Moat
-        stability = 100 # Base asset quality proxy
-        final_score = int(stability + mgmt + moat_pts)
-        
-        # 3. THE VERDICT BANNER
-        verdict_text = apply_style(final_score)
-        
-        # 4. THE MASTER SCORE
-        st.markdown(f"<h1 style='text-align: center; font-size: 80px;'>{final_score}</h1>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: gray;'>Dyer Score (Max 300)</p>", unsafe_allow_html=True)
+if nav == "🏛️ Research Homepage":
+    st.title("🔬 The 14-Chapter Lab")
+    st.subheader("120-Day Audit Cycle: **84 Days Remaining**")
+    
+    # 5-Model Simulation Data
+    models = {
+        "Model A (Cull Strategy)": {"Score": 245, "Delta": "+12%", "Status": "PASSING"},
+        "Model B (90-Day Rebalance)": {"Score": 210, "Delta": "+4%", "Status": "AUDIT REQ"},
+        "Model C (High Premium)": {"Score": 265, "Delta": "+15%", "Status": "PASSING"},
+        "Model D (Value/Asset)": {"Score": 185, "Delta": "-2%", "Status": "FAILING"},
+        "Model E (Anti-Model)": {"Score": 82, "Delta": "-20%", "Status": "TRAPDOOR"}
+    }
 
-        # 5. CORE 5 VITALS (The Useful Stuff)
-        st.markdown("---")
-        v1, v2, v3 = st.columns(3)
-        v1.metric("Profit Margin", f"{info.get('profitMargins', 0)*100:.1f}%")
-        v2.metric("Rev Growth", f"{info.get('revenueGrowth', 0)*100:.1f}%")
-        v3.metric("Debt/Equity", info.get('debtToEquity', 'N/A'))
+    # Display 5 Models in a Grid
+    cols = st.columns(5)
+    for i, (name, data) in enumerate(models.items()):
+        with cols[i]:
+            status_class = "status-pass" if "PASSING" in data['Status'] else "status-fail"
+            st.markdown(f"""
+                <div class="model-card">
+                    <h4>{name}</h4>
+                    <h2 style="margin: 10px 0;">{data['Score']}</h2>
+                    <p>Cycle Delta: <b>{data['Delta']}</b></p>
+                    <p class="{status_class}">{data['Status']}</p>
+                </div>
+            """, unsafe_allow_html=True)
 
-        # 6. SHARING (Wordle Mode)
-        st.markdown("---")
-        if st.button("📤 Generate Share Report"):
-            share_block = f"🛡️ Dyer Audit: ${ticker}\n🎯 Score: {final_score}/300\n{verdict_text}\n#DyerSentinel"
-            st.code(share_block)
-            st.success("Copied! Paste this into the family chat.")
+    st.markdown("---")
+    st.subheader("🏁 Auditor Leaderboard")
+    st.table(pd.DataFrame({
+        "Auditor": ["YOU (SOV-00)", "MOM (SOV-01)", "DAD (SOV-02)"],
+        "Points": [150, 45, 30],
+        "Chapter Rank": ["Chapter 14: Master", "Chapter 4: Apprentice", "Chapter 2: Novice"]
+    }))
 
-    except Exception:
-        st.warning("Please enter a valid ticker to scan.")
-
-# Sidebar Leaderboard
-st.sidebar.title("🏆 Leaderboard")
-st.sidebar.write("1. YOU (SOV-00) - 150 pts")
-st.sidebar.write("2. MOM (SOV-01) - 45 pts")
-st.sidebar.write("3. DAD (SOV-02) - 30 pts")
+elif nav == "📡 Asset Scanner":
+    # Scanner Code here
+    st.title("📡 Asset Scanner")
+    st.write("Scan a ticker to update the Dyer Score for the 120-day cycle.")
