@@ -1,17 +1,17 @@
 import streamlit as st
 import pandas as pd
 
-# --- 1. TICKER INTELLIGENCE LIBRARY ---
-# This ensures that Rivian and Costco do NOT start with the same score.
-TICKER_DATA = {
-    "COST": {"s": 95, "g": 85, "p": 98, "name": "Costco Wholesale"},
-    "RIVN": {"s": 20, "g": 60, "p": 30, "name": "Rivian Automotive"},
-    "MSFT": {"s": 92, "g": 80, "p": 95, "name": "Microsoft Corp"},
-    "NVDA": {"s": 85, "g": 98, "p": 90, "name": "Nvidia Corp"}
+# --- 1. TICKER PROFILE LIBRARY ---
+TICKER_PROFILES = {
+    "COST": {"s": 95, "g": 85, "p": 98},
+    "RIVN": {"s": 22, "g": 55, "p": 31},
+    "MSFT": {"s": 90, "g": 82, "p": 94},
+    "NVDA": {"s": 88, "g": 95, "p": 92}
 }
 
-if 'audit_history' not in st.session_state:
-    st.session_state.audit_history = {}
+# Persistent Storage
+if 'audit_log' not in st.session_state:
+    st.session_state.audit_log = {}
 
 # --- 2. UI SETTINGS ---
 st.set_page_config(page_title="Dyer Global Audit", layout="wide")
@@ -27,40 +27,53 @@ st.markdown("""
 # --- 3. NAVIGATION ---
 page = st.sidebar.radio("COMMAND CENTER", ["📡 DYER SCANNER", "🔬 5* MODELS HUB"])
 
+# --- 4. PAGE 1: SCANNER & SUB-PARTS ---
 if page == "📡 DYER SCANNER":
     st.markdown('<h1 class="search-title">🛡️ DYER SENTINEL</h1>', unsafe_allow_html=True)
     
-    ticker = st.text_input("ENTER TICKER (e.g., COST, RIVN)", "COST").upper()
+    ticker = st.text_input("ENTER TICKER", "COST").upper()
     
-    # DYNAMIC SCORE LOADING
-    # If the ticker is in our library, use those scores. Otherwise, use 50.
-    defaults = TICKER_DATA.get(ticker, {"s": 50, "g": 50, "p": 50})
+    # Load profile or use generic 50
+    profile = TICKER_PROFILES.get(ticker, {"s": 50, "g": 50, "p": 50})
 
-    st.markdown(f"### 📥 Forensic Audit: {ticker}")
+    st.markdown(f"### 📊 Raw Score Audit: {ticker}")
     c1, c2, c3 = st.columns(3)
-    # Using 'key' ensures Streamlit keeps these inputs unique to the ticker
-    with c1: s = st.number_input("STABILITY", 0, 100, defaults['s'], key=f"{ticker}_s")
-    with c2: g = st.number_input("GROWTH", 0, 100, defaults['g'], key=f"{ticker}_g")
-    with c3: p = st.number_input("PREMIUM", 0, 100, defaults['p'], key=f"{ticker}_p")
+    
+    # Static inputs without delta logic
+    with c1: s = st.number_input("STABILITY", 0, 100, profile['s'], key=f"{ticker}_s_val")
+    with c2: g = st.number_input("GROWTH", 0, 100, profile['g'], key=f"{ticker}_g_val")
+    with c3: p = st.number_input("PREMIUM", 0, 100, profile['p'], key=f"{ticker}_p_val")
     
     total = s + g + p
 
-    if st.button("SYNC AUDIT TO MODELS"):
-        st.session_state.audit_history[ticker] = {"Total": total, "S": s, "G": g, "P": p}
-        st.success(f"Audit for {ticker} Synced. Total Dyer Score: {total}")
+    if st.button("UPDATE CORE MODELS"):
+        st.session_state.audit_log[ticker] = {"Dyer Score": total, "Stability": s, "Growth": g, "Premium": p}
+        st.success(f"Dyer Score for {ticker} updated to {total}")
 
-    # Sub-part display logic remains the same...
+    # Sub-part display
+    f1, f2, f3 = st.columns(3)
+    with f1:
+        st.markdown('<div class="metric-header">STABILITY</div>', unsafe_allow_html=True)
+        st.write(f"Value: {s}")
+    with f2:
+        st.markdown('<div class="metric-header">GROWTH</div>', unsafe_allow_html=True)
+        st.write(f"Value: {g}")
+    with f3:
+        st.markdown('<div class="metric-header">PREMIUM</div>', unsafe_allow_html=True)
+        st.write(f"Value: {p}")
 
+# --- 5. PAGE 2: 5* MODELS HUB ---
 elif page == "🔬 5* MODELS HUB":
-    st.title("🔬 5* Models Performance")
+    st.title("🔬 5* Models Hub: Value Aggregation")
     
-    if st.session_state.audit_history:
-        # CONVERT HISTORY TO TABLE
-        df = pd.DataFrame.from_dict(st.session_state.audit_history, orient='index')
+    if st.session_state.audit_log:
+        df = pd.DataFrame.from_dict(st.session_state.audit_log, orient='index')
+        
+        # Display clean table
         st.table(df)
         
-        # AGGREGATED CALCULATION
-        avg_score = df['Total'].mean()
-        st.metric("Aggregated Portfolio Dyer Score", f"{avg_score:.1f} / 300")
+        # Aggregate Value
+        agg_val = df['Dyer Score'].mean()
+        st.metric("Aggregated Portfolio Value", f"{agg_val:.1f}")
     else:
-        st.warning("No data found. Please run audits in the Scanner first.")
+        st.warning("No audit values detected. Return to Scanner to input data.")
