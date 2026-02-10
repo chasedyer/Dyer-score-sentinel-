@@ -1,25 +1,40 @@
 import pandas as pd
 
-# 1. Models Baseline
-models = {
+# The 7 Portfolio Architecture
+portfolios = {
     "Model A": ["PLTR", "ARM", "PGR", "ANET", "VRT", "DKNG", "HIMS", "CELH", "MDB", "UBER"],
     "Model B": ["CDNS", "LRCX", "TMO", "INTU", "ACN", "ORCL", "SYK", "TJX", "LIN", "RS"],
-    "Model C": ["MELI", "SHOP", "DDOG", "IOT", "AXON", "CRWD", "SNOW", "U", "PINS", "COIN", "DUOL", "BWXT", "NOW"],
+    "Model C": ["SBUX", "NKE", "PYPL", "LULU", "DIS", "TSLA", "UPS", "ENPH", "MMM", "BA"],
     "Model D": ["MSFT", "COST", "V", "WM", "DE", "ASML", "LLY", "CP", "NEE", "BRK.B"],
-    "Model F": ["MELI", "AXON", "IOT", "SHOP", "DDOG", "DUOL", "BWXT", "COIN", "PINS", "U"]
+    "Model E": ["NKLA", "SAVE", "AMC", "CVNA", "PTON", "BYND", "LCID", "RILY", "GME", "WBA"],
+    "Model F": ["MELI", "AXON", "IOT", "SHOP", "DDOG", "DUOL", "BWXT", "COIN", "PINS", "U"],
+    "Model G": ["PANW", "BKH", "BFLY", "NSA", "DUOT", "NBIS", "PUBM", "BKRRF", "INSG", "CFLD"]
 }
 
-# 2. Share Calculation (1k Allocation + 0.5 Rule)
-def get_stable_shares(prices):
-    output = {}
-    for model, tickers in models.items():
-        allocation = 1000 if model != "Model C" else 769.23
+def render_tab_2(ticker_data, dyer_scores):
+    summary = []
+    for model, tickers in portfolios.items():
         for t in tickers:
-            px = prices.get(t, 100.0)
-            raw = allocation / px
-            # 0.5 Rounding Rule
-            output[t] = int(raw + 0.5)
-    return output
+            # 1. Performance Logic
+            ytd_change = (ticker_data[t]['price'] / ticker_data[t]['open'] - 1)
+            color = "green" if ytd_change >= 0 else "red"
+            
+            # 2. Allocation ($1k per stock) + 0.5 Rounding
+            raw_shares = 1000 / ticker_data[t]['price']
+            final_shares = int(raw_shares + 0.5)
+            
+            # 3. Dyer Score Tracking (S + G + P)
+            score = dyer_scores.get(t, 0)
+            
+            summary.append({
+                "Portfolio": model,
+                "Ticker": t,
+                "Shares": final_shares,
+                "Dyer Score": score,
+                "YTD": f"{ytd_change:.2%}",
+                "Status": color
+            })
+    return pd.DataFrame(summary)
 
-# 3. Sentinel Rules
-rules = {"audit_cycle": 120, "target_growth": 0.10}
+# Waitlist (Manual Tracking Only - Does not affect site code)
+# Alpha Watch: RDDT, TTAN
