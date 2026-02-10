@@ -4,7 +4,7 @@ import pandas as pd
 
 st.set_page_config(page_title="Dyer Score Sentinel", page_icon="🛡️")
 
-# --- Sovereign ID Logic ---
+# Initialize log
 if 'query_log' not in st.session_state:
     st.session_state.query_log = []
 
@@ -15,52 +15,57 @@ is_admin = sovereign_id == "SOVEREIGN-00"
 st.title("The Dyer Score™")
 st.markdown("---")
 
-ticker = st.text_input("Enter Ticker", value="COST").upper()
+ticker = st.text_input("Enter Ticker (e.g., WMT, COIN, COST)", value="WMT").upper()
 
 if ticker:
     try:
+        # Pulling Data
         stock = yf.Ticker(ticker)
         info = stock.info
         
-        # 1. Stability Bucket (100 Points)
-        # We look at Debt-to-Equity. If it's over 200, the score drops.
+        # 1. Stability (Data-Driven)
         de_ratio = info.get('debtToEquity', 100)
         stability_score = max(0, 100 - (de_ratio / 5))
         
-        # 2. Forensic Inputs (200 Points)
-        st.subheader("Forensic Audit Inputs")
+        st.subheader(f"Forensic Audit: {ticker}")
         col1, col2 = st.columns(2)
         
         with col1:
-            management_trust = st.slider("Management Quality", 0, 100, 85)
+            # Added unique key tied to ticker
+            management_trust = st.slider(
+                "Management Quality", 0, 100, 85, 
+                key=f"mgmt_{ticker}"
+            )
         
         with col2:
-            # Setting 'Stable' as the default so it doesn't start at 'Decaying'
+            # Added unique key tied to ticker + default 'Stable'
             moat_status = st.select_slider(
                 "Moat Capacity", 
                 options=["Decaying", "Stable", "Expanding"],
-                value="Stable" 
+                value="Stable",
+                key=f"moat_{ticker}"
             )
         
-        # Moat Logic: Expanding = 100, Stable = 50, Decaying = 0
+        # Logic for Moat Points
         moat_points = {"Decaying": 0, "Stable": 50, "Expanding": 100}[moat_status]
         
-        # --- FINAL DYER SCORE ---
+        # FINAL SCORE
         dyer_score = int(stability_score + management_trust + moat_points)
         
-        # Visual Gauge
-        st.markdown(f"<h1 style='text-align: center; color: #4A90E2;'>{dyer_score} / 300</h1>", unsafe_allow_html=True)
+        # Big Score Display
+        st.markdown(f"<h1 style='text-align: center; color: #4A90E2;'>Dyer Score: {dyer_score} / 300</h1>", unsafe_allow_html=True)
         
-        # The Dyer Verdict
+        # Verdicts
         if dyer_score >= 240:
-            st.success("🟢 SOVEREIGN STATUS: Strong Asset Quality & Moat.")
+            st.success("🟢 SOVEREIGN STATUS")
         elif dyer_score >= 160:
-            st.warning("🟡 MONITOR: Average quality. No immediate Trapdoor.")
+            st.warning("🟡 MONITOR STATUS")
         else:
-            st.error("🔴 TRAPDOOR: Asset is failing the Dyer Metric. High Decay Risk.")
+            st.error("🔴 TRAPDOOR ALERT")
 
     except Exception as e:
-        st.error(f"Data Error: {e}")
+        st.error(f"Waiting for valid Ticker... (Error: {e})")
 
+# Admin Log
 if is_admin:
-    st.sidebar.write("Admin View Active")
+    st.sidebar.write("### Auditor Log", pd.DataFrame(st.session_state.query_log))
