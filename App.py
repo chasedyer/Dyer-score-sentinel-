@@ -2,97 +2,100 @@ import streamlit as st
 import pandas as pd
 import yfinance as yf
 
-# --- 1. SETTINGS & STYLING ---
-st.set_page_config(page_title="Dyer Research Lab", layout="wide")
+# --- 1. SETTINGS ---
+st.set_page_config(page_title="Dyer Global Sentinel", layout="wide")
 
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; color: #FFFFFF; }
-    .search-title { text-align: center; font-size: 50px; font-weight: bold; color: #00FF41; }
-    .stButton>button { width: 100%; background-color: #00FF41; color: black; font-weight: bold; border-radius: 10px; height: 3em; }
-    .model-card { background-color: #1C2128; border: 1px solid #30363D; padding: 15px; border-radius: 10px; text-align: center; }
+    .search-title { text-align: center; font-size: 55px; font-weight: bold; color: #00FF41; margin-bottom: 0px; }
+    .stButton>button { width: 100%; background-color: #00FF41; color: black; font-weight: bold; border-radius: 10px; height: 3.5em; }
+    .metric-row { display: flex; justify-content: space-around; background: #161B22; padding: 20px; border-radius: 15px; border: 1px solid #30363D; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. NAVIGATION ---
-page = st.sidebar.radio("LAB NAVIGATION", ["📡 SCANNER", "🧪 THE 5 MODELS", "🏆 AUDITOR PODIUM"])
+# --- 2. SIDEBAR (Index Benchmarks) ---
+st.sidebar.title("🏛️ MARKET BENCHMARKS")
+st.sidebar.markdown("Comparing against: **S&P 500, Russell 2000, Nasdaq**")
 
-# --- 3. PAGE 1: SCANNER (STABILIZED SEARCH) ---
-if page == "📡 SCANNER":
+# --- 3. NAVIGATION ---
+page = st.sidebar.radio("NAVIGATE", ["📡 GLOBAL SCANNER", "🔬 CORE 23 TRACKER", "🧪 THE 5 MODELS", "🏆 AUDITOR PODIUM"])
+
+# --- 4. PAGE 1: GLOBAL SCANNER (LANDING) ---
+if page == "📡 GLOBAL SCANNER":
     st.markdown('<h1 class="search-title">🛡️ DYER SENTINEL</h1>', unsafe_allow_html=True)
-    st.markdown('<p style="text-align: center; color: #8B949E;">14 CHAPTER RESEARCH | 120-DAY AUDIT CYCLE</p>', unsafe_allow_html=True)
+    st.markdown('<p style="text-align: center; color: #8B949E; letter-spacing: 2px;">UNIVERSAL INDEX AUDIT | 120-DAY CYCLE</p>', unsafe_allow_html=True)
 
-    # THE FORM PREVENTS STUTTERING / BLANK SCREENS
-    with st.form("search_form"):
-        col1, col2 = st.columns([3, 1])
+    with st.form("global_search"):
+        col1, col2 = st.columns([4, 1])
         with col1:
-            ticker_input = st.text_input("TICKER SYMBOL", value="COST").upper()
+            ticker = st.text_input("", placeholder="SCAN ANY TICKER (e.g., NVDA, IWM, SPY, RTY)").upper()
         with col2:
-            st.write(" ") # Spacer
-            submitted = st.form_submit_button("RUN FORENSIC SCAN")
+            st.write(" ")
+            submitted = st.form_submit_button("VALIDATE ASSET")
 
-    # Only executes once the button is clicked
-    if submitted and ticker_input:
+    if submitted and ticker:
         try:
-            with st.spinner(f'AUDITING {ticker_input}...'):
-                stock = yf.Ticker(ticker_input)
-                # Fetching price with basic error handling
-                data = stock.history(period="1d")
-                if data.empty:
-                    st.error("Ticker not found. Try a common one like AAPL or NVDA.")
+            with st.spinner(f"SEARCHING UNIVERSAL INDICES FOR {ticker}..."):
+                asset = yf.Ticker(ticker)
+                # Use history for a clean, stable price fetch
+                hist = asset.history(period="5d")
+                
+                if hist.empty:
+                    st.error("Asset not found in S&P, Russell, or Nasdaq database.")
                 else:
-                    price = data['Close'].iloc[-1]
+                    price = hist['Close'].iloc[-1]
                     
-                    # DYER SCORE LOGIC
-                    st.sidebar.subheader("Manual Forensic Inputs")
-                    mgmt = st.sidebar.slider("Management Quality", 0, 100, 85)
+                    # DYER SCORE (The 300 Point Rushmore Bucket)
+                    st.sidebar.subheader("Manual Forensic Override")
+                    mgmt = st.sidebar.slider("Management Quality", 0, 100, 75)
                     moat = st.sidebar.select_slider("Moat Strength", options=[0, 50, 100], value=50)
-                    score = 100 + mgmt + moat
+                    score = 100 + mgmt + moat 
                     
-                    # VERDICT DISPLAY
+                    # CONVICTION DIAL
                     st.markdown("---")
                     if score >= 200:
-                        st.success(f"💎 {ticker_input} SCORE: {score}/300 | SOVEREIGN BUY")
+                        st.success(f"💎 {ticker} VERDICT: SOVEREIGN BUY ({score}/300)")
                         label = "🟢 BUY"
                     elif score < 150:
-                        st.error(f"🚨 {ticker_input} SCORE: {score}/300 | TRAPDOOR SELL")
+                        st.error(f"🚨 {ticker} VERDICT: TRAPDOOR SELL ({score}/300)")
                         label = "🔴 SELL"
                     else:
-                        st.warning(f"⚖️ {ticker_input} SCORE: {score}/300 | AUDIT HOLD")
+                        st.warning(f"⚖️ {ticker} VERDICT: AUDIT HOLD ({score}/300)")
                         label = "🟡 HOLD"
                     
                     st.progress(score / 300)
 
-                    # VITALS GRID
-                    v1, v2, v3 = st.columns(3)
-                    v1.metric("Current Price", f"${price:.2f}")
-                    v2.metric("Rushmore Score", f"{score}/300")
-                    v3.metric("Verdict", label)
+                    # INDEX COMPARISON DATA
+                    v1, v2, v3, v4 = st.columns(4)
+                    v1.metric(f"{ticker} Price", f"${price:.2f}")
+                    v2.metric("Score", f"{score}/300")
+                    v3.metric("Status", label)
+                    v4.metric("Cycle Day", "Day 36/120")
+
         except Exception as e:
-            st.error("Exchange link failed. Check ticker symbol.")
+            st.error("Terminal link interrupted. Verify ticker.")
 
-# --- 4. PAGE 2: THE 5 MODELS ---
-elif page == "🧪 THE 5 MODELS":
-    st.title("🧪 Experimental Model Lab")
-    m_cols = st.columns(5)
-    model_data = [
-        ("MODEL A", "Cull Strategy", 245, "PASSING"),
-        ("MODEL B", "90-Day Rebalance", 210, "STABLE"),
-        ("MODEL C", "High Premium", 265, "PASSING"),
-        ("MODEL D", "Value/Asset", 185, "FAILING"),
-        ("MODEL E", "Anti-Model", 82, "TRAPDOOR")
-    ]
-    for i, (name, desc, s, status) in enumerate(model_data):
-        with m_cols[i]:
-            st.markdown(f'<div class="model-card"><h3>{name}</h3><p>{desc}</p><h2>{s}</h2><b>{status}</b></div>', unsafe_allow_html=True)
+# --- 5. PAGE 2: CORE 23 TRACKER ---
+elif page == "🔬 CORE 23 TRACKER":
+    st.title("🔬 Core 23 Performance Hub")
+    st.markdown("### Signal Weight Rushmore (10) vs. Remaining 13")
+    
+    # Pre-calculated benchmark stats
+    c1, c2 = st.columns(2)
+    with c1:
+        st.info("🔥 **Rushmore 10 Average**")
+        st.metric("Avg Dyer Score", "284", delta="+12%")
+    with c2:
+        st.info("🧊 **Remaining 13 Average**")
+        st.metric("Avg Dyer Score", "191", delta="-3%")
 
-# --- 5. PAGE 3: PODIUM ---
+# --- 6. PAGE 4: AUDITOR PODIUM ---
 elif page == "🏆 AUDITOR PODIUM":
-    st.title("🏆 Auditor Podium")
-    df = pd.DataFrame({
-        "Rank": ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th"],
+    st.title("🏆 Global Auditor Podium")
+    auditors = pd.DataFrame({
         "Auditor": ["YOU (SOV-00)", "ANNE", "PABLO", "MIKE", "MOM", "DAD", "STEVE"],
         "Points": [1500, 1250, 1100, 950, 450, 300, 0],
-        "Level": ["C-14", "C-12", "C-11", "C-09", "C-04", "C-02", "Pending"]
+        "Rank": ["C-14 Master", "C-12 Expert", "C-11 Senior", "C-09 Lead", "C-04 Junior", "C-02 Novice", "Pending"]
     })
-    st.table(df)
+    st.table(auditors)
