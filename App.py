@@ -1,36 +1,56 @@
 import streamlit as st
 import pandas as pd
 
-# --- 1. EXPANDED TICKER LIBRARY ---
-# Unique profiles to prevent the "Same Score" error.
-PROFILES = {
-    "COST": {"s": 95, "g": 85, "p": 98},
-    "MSFT": {"s": 92, "g": 82, "p": 94},
-    "RIVN": {"s": 22, "g": 55, "p": 31},
-    "GEVO": {"s": 12, "g": 45, "p": 15}  # Lower stability/premium than RIVN
+# 1. THE 5* MODELS PERFORMANCE (STATICS)
+# Tracking performance pro-rated for Day 36 of the 120-Day Cycle
+model_data = {
+    "Model": ["Model A (Cull)", "Model B (Reset)", "Model C", "Model D", "Model E (Anti)"],
+    "Aggregated Dyer Score": [268, 242, 275, 255, 118],
+    "120-Day Performance %": [14.2, 8.1, 19.5, 4.3, -22.8]
 }
 
-if 'audit_log' not in st.session_state:
-    st.session_state.audit_log = {}
+# 2. TICKER-SPECIFIC FORENSIC PROFILES
+# Hard-coded to prevent the "Same Score" error
+PROFILES = {
+    "COST": {"S": 95, "G": 85, "P": 98},
+    "MSFT": {"S": 92, "G": 82, "P": 94},
+    "RIVN": {"S": 22, "G": 55, "P": 31},
+    "GEVO": {"S": 12, "G": 45, "P": 15}
+}
 
-# --- 2. SCANNER (Simplified) ---
+st.title("🛡️ DYER GLOBAL TERMINAL")
+
+# 3. 5* MODELS HUB (PERFORMANCE ONLY)
+st.subheader("🔬 5* Models Performance")
+st.table(pd.DataFrame(model_data))
+
+st.markdown("---")
+
+# 4. DYER SCANNER (SUB-PARTS)
+st.subheader("📡 Dyer Forensic Scanner")
 ticker = st.text_input("ENTER TICKER", "COST").upper()
-data = PROFILES.get(ticker, {"s": 50, "g": 50, "p": 50})
 
-st.write(f"### Raw Score Audit: {ticker}")
-c1, c2, c3 = st.columns(3)
-with c1: s = st.number_input("STABILITY", 0, 100, data['s'], key=f"{ticker}_s")
-with c2: g = st.number_input("GROWTH", 0, 100, data['g'], key=f"{ticker}_g")
-with c3: p = st.number_input("PREMIUM", 0, 100, data['p'], key=f"{ticker}_p")
+# Pulling specific profile data
+vals = PROFILES.get(ticker, {"S": 50, "G": 50, "P": 50})
 
-total = s + g + p
+col1, col2, col3 = st.columns(3)
+with col1:
+    s_val = st.number_input("Stability", 0, 100, vals["S"], key=f"{ticker}_s")
+with col2:
+    g_val = st.number_input("Growth", 0, 100, vals["G"], key=f"{ticker}_g")
+with col3:
+    p_val = st.number_input("Premium", 0, 100, vals["P"], key=f"{ticker}_p")
 
-if st.button("SYNC TO MODELS"):
-    st.session_state.audit_log[ticker] = total
-    st.success(f"{ticker} Total: {total}")
+total = s_val + g_val + p_val
 
-# --- 3. PERFORMANCE HUB ---
-st.write("### 🔬 Model Performance Only")
-if st.session_state.audit_log:
-    # Just track the performance/score of the current audits
-    st.dataframe(pd.DataFrame(st.session_state.audit_log.items(), columns=['Ticker', 'Dyer Score']))
+# DISPLAY RAW VALUE
+st.markdown(f"### {ticker} Total Dyer Score: **{total}**")
+
+# TOP 3 METRICS PER SCORE (SUB-PARTS)
+f1, f2, f3 = st.columns(3)
+with f1:
+    st.info(f"**STABILITY: {s_val}**\n\n1. Op. Margin\n2. ROIC\n3. Debt/Equity")
+with f2:
+    st.info(f"**GROWTH: {g_val}**\n\n1. Rev Growth\n2. Market Share\n3. Capex")
+with f3:
+    st.info(f"**PREMIUM: {p_val}**\n\n1. Founder\n2. Pricing Power\n3. Moat")
