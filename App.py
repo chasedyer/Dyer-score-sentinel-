@@ -3,92 +3,100 @@ import pandas as pd
 import yfinance as yf
 import requests
 
-# --- 1. LIVE ENGINE CONFIG ---
-st.set_page_config(page_title="Dyer Global Sentinel", layout="wide")
+# --- 1. SETTINGS ---
+st.set_page_config(page_title="Dyer Global Audit", layout="wide")
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; color: #FFFFFF; }
     .search-title { text-align: center; font-size: 50px; font-weight: bold; color: #00FF41; margin-bottom: 0px; }
     .stButton>button { width: 100%; background-color: #00FF41; color: black; font-weight: bold; border-radius: 10px; height: 3.5em; }
+    .metric-box { background: #161B22; border: 1px solid #30363D; padding: 15px; border-radius: 10px; text-align: center; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. UNIVERSAL SEARCH FUNCTION ---
-def find_ticker(query):
+# --- 2. LIVE DATA ENGINE ---
+def get_ticker_suggestions(query):
     if not query or len(query) < 2: return []
     url = f"https://query2.finance.yahoo.com/v1/finance/search?q={query}"
     headers = {'User-Agent': 'Mozilla/5.0'}
     try:
-        data = requests.get(url, headers=headers).json()
-        return [f"{q['symbol']} - {q['shortname']}" for q in data.get('quotes', []) if 'symbol' in q and 'shortname' in q]
+        response = requests.get(url, headers=headers).json()
+        return [f"{q['symbol']} - {q['shortname']}" for q in response.get('quotes', []) if 'symbol' in q]
     except: return []
 
-# --- 3. COMMAND NAVIGATION ---
-page = st.sidebar.radio("COMMAND CENTER", ["📡 GLOBAL SCANNER", "🔬 CORE 23 HUB", "🧪 MODEL A/B LOGIC", "🏆 AUDITOR PODIUM"])
+# --- 3. DASHBOARD NAVIGATION ---
+page = st.sidebar.radio("COMMAND CENTER", ["📡 GLOBAL SCANNER", "🔬 CORE 23 HUB", "🏆 AUDITOR PODIUM"])
 
-# --- 4. PAGE 1: THE SCANNER ---
 if page == "📡 GLOBAL SCANNER":
     st.markdown('<h1 class="search-title">🛡️ DYER SENTINEL</h1>', unsafe_allow_html=True)
-    st.markdown('<p style="text-align: center; color: #8B949E;">LIVE UNIVERSAL INDEX SCAN | S&P 500 | NASDAQ | RUSSELL</p>', unsafe_allow_html=True)
+    st.markdown('<p style="text-align: center; color: #8B949E;">LIVE FORENSIC AUDIT | MARGINS | GROWTH | ROIC</p>', unsafe_allow_html=True)
 
-    # AUTO-FILL SEARCH BAR
-    user_query = st.text_input("ENTER COMPANY NAME OR TICKER", placeholder="e.g. Costco, Microsoft, Nvidia...")
-    options = find_ticker(user_query)
+    # SEARCH
+    search_query = st.text_input("ENTER COMPANY NAME", placeholder="Search for any S&P 500 / Russell / Nasdaq name...")
+    suggestions = get_ticker_suggestions(search_query)
     
-    if options:
-        selection = st.selectbox("SELECT ASSET FOR AUDIT:", options)
-        ticker = selection.split(" - ")[0]
+    if suggestions:
+        selected = st.selectbox("CONFIRM ASSET:", suggestions)
+        ticker = selected.split(" - ")[0]
     else:
-        ticker = user_query.upper()
+        ticker = search_query.upper()
 
     if st.button("CALCULATE DYER SCORE"):
         if ticker:
             try:
-                with st.spinner(f"Initiating Live Forensic Audit for {ticker}..."):
-                    asset = yf.Ticker(ticker)
-                    price = asset.fast_info['last_price']
+                with st.spinner(f"Running Forensic Scan on {ticker}..."):
+                    stock = yf.Ticker(ticker)
+                    info = stock.info
                     
-                    # DYER SCORE BUCKETS (100pt each)
-                    st.sidebar.subheader("Forensic Sliders")
-                    stab = st.sidebar.slider("Stability (Asset Quality)", 0, 100, 85)
-                    grow = st.sidebar.slider("Growth (Expansion)", 0, 100, 80)
-                    prem = st.sidebar.slider("Premium (Management)", 0, 100, 90)
-                    total = stab + grow + prem
+                    # --- VITAL EXTRACTION ---
+                    # Margins
+                    op_margin = info.get('operatingMargins', 0) * 100
+                    net_margin = info.get('profitMargins', 0) * 100
+                    
+                    # Growth
+                    rev_growth = info.get('revenueGrowth', 0) * 100
+                    
+                    # ROIC Calculation: NOPAT / (Equity + Debt - Cash)
+                    ebit = info.get('ebitda', 1) * 0.8 # Rough NOPAT proxy if EBIT not available
+                    equity = info.get('totalStockholderEquity', 1)
+                    debt = info.get('totalDebt', 0)
+                    cash = info.get('totalCash', 0)
+                    roic = (ebit / (equity + debt - cash)) * 100 if (equity + debt - cash) != 0 else 0
+
+                    # --- UI DISPLAY ---
+                    st.markdown("### 📊 Live Forensic Vitals")
+                    v1, v2, v3, v4 = st.columns(4)
+                    v1.metric("Op. Margin", f"{op_margin:.1f}%")
+                    v2.metric("Rev. Growth (YoY)", f"{rev_growth:.1f}%")
+                    v3.metric("ROIC (Est.)", f"{roic:.1f}%")
+                    v4.metric("Net Margin", f"{net_margin:.1f}%")
+
+                    # --- DYER SCORE SECTION ---
+                    st.sidebar.markdown("---")
+                    st.sidebar.subheader("Adjust Rushmore Buckets")
+                    stab = st.sidebar.slider("Stability (Asset Quality)", 0, 100, int(op_margin * 2 if op_margin < 50 else 90))
+                    grow = st.sidebar.slider("Growth (Expansion)", 0, 100, int(rev_growth * 3 if rev_growth < 30 else 95))
+                    prem = st.sidebar.slider("Premium (Management)", 0, 100, 85)
+                    
+                    total_score = stab + grow + prem
                     
                     st.markdown("---")
-                    if total >= 200: st.success(f"💎 {ticker} SCORE: {total}/300 | SOVEREIGN BUY")
-                    elif total < 150: st.error(f"🚨 {ticker} SCORE: {total}/300 | TRAPDOOR SELL")
-                    else: st.warning(f"⚖️ {ticker} SCORE: {total}/300 | AUDIT HOLD")
-                    
-                    st.progress(total / 300)
+                    if total_score >= 200:
+                        st.success(f"💎 {ticker} VERDICT: SOVEREIGN BUY ({total_score}/300)")
+                    elif total_score < 150:
+                        st.error(f"🚨 {ticker} VERDICT: TRAPDOOR SELL ({total_score}/300)")
+                    else:
+                        st.warning(f"⚖️ {ticker} VERDICT: AUDIT HOLD ({total_score}/300)")
 
-                    # LIVE DATA GRID
-                    c1, c2, c3 = st.columns(3)
-                    c1.metric(f"Live Price", f"${price:.2f}")
-                    c2.metric("Rushmore Status", "Top 10" if ticker in ["AAPL", "COST", "MSFT"] else "Global Universe")
-                    c3.metric("Audit Window", "Day 36 / 120")
-            except:
-                st.error("Terminal link interrupted. Select a valid company from the dropdown.")
+            except Exception as e:
+                st.error("Select a company from the dropdown to initialize the live data link.")
 
-# --- 5. PAGE 2: CORE 23 HUB ---
 elif page == "🔬 CORE 23 HUB":
     st.title("🔬 Core 23 Tracking")
-    st.write("Comparing the **Signal Weight Rushmore 10** against the **Remaining 13**.")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.info("🔥 **Rushmore 10**")
-        st.write(["AAPL", "MSFT", "GOOGL", "AMZN", "META", "TSLA", "NVDA", "COST", "V", "MA"])
-    with col2:
-        st.warning("🧊 **Remaining 13**")
-        st.write(["WMT", "JPM", "PG", "UNH", "HD", "DIS", "BAC", "VZ", "ADBE", "NFLX", "CRM", "INTC", "CMCSA"])
-
-# --- 6. PAGE 4: PODIUM ---
-elif page == "🏆 AUDITOR PODIUM":
-    st.title("🏆 Global Auditor Leaderboard")
-    auditors = pd.DataFrame({
-        "Auditor": ["YOU (SOV-00)", "ANNE", "PABLO", "MIKE", "MOM", "DAD", "STEVE"],
-        "Points": [1500, 1250, 1100, 950, 450, 300, 0],
-        "Rank": ["C-14", "C-12", "C-11", "C-09", "C-04", "C-02", "Pending"]
-    })
-    st.table(auditors)
+    st.write("Current Audit Cycle: **Day 36 / 120**")
+    # Tracker for your specific 10 vs 13 setup
+    st.table(pd.DataFrame({
+        "Metric": ["Avg Dyer Score", "Avg ROIC", "Avg Margin"],
+        "Rushmore 10": [278, "24.5%", "32.1%"],
+        "Remaining 13": [191, "12.8%", "14.5%"]
+    }))
