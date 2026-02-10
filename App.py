@@ -2,105 +2,99 @@ import streamlit as st
 import pandas as pd
 import yfinance as yf
 
-# --- UI CONFIG ---
+# --- 1. CORE SETTINGS ---
 st.set_page_config(page_title="Dyer Research Lab", layout="wide")
 
-# --- CLEAN TERMINAL STYLING ---
+# Persistent CSS for the Terminal Look
 st.markdown("""
     <style>
-    .stApp { background-color: #0E1117; color: #FFFFFF; font-family: 'Helvetica', sans-serif; }
-    .search-title { text-align: center; font-size: 50px; font-weight: bold; margin-bottom: 0px; color: #00FF41; }
+    .stApp { background-color: #0E1117; color: #FFFFFF; }
+    .search-title { text-align: center; font-size: 48px; font-weight: bold; color: #00FF41; margin-top: 20px; }
     .stTextInput > div > div > input {
         background-color: #161B22; color: #00FF41; border: 2px solid #00FF41;
-        border-radius: 50px; padding: 25px; font-size: 24px; text-align: center;
+        border-radius: 50px; padding: 25px; font-size: 22px; text-align: center;
     }
-    .model-card { background-color: #1C2128; border: 1px solid #30363D; padding: 15px; border-radius: 10px; text-align: center; }
+    .model-card { background-color: #1C2128; border: 1px solid #30363D; padding: 20px; border-radius: 12px; text-align: center; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- NAVIGATION ---
-page = st.sidebar.radio("LAB NAVIGATION", ["📡 SCANNER", "🧪 THE 5 MODELS", "🏆 AUDITOR PODIUM"])
+# --- 2. SIDEBAR NAVIGATION ---
+st.sidebar.title("🛡️ LAB CONTROL")
+page = st.sidebar.radio("NAVIGATE", ["📡 SCANNER (LANDING)", "🧪 THE 5 MODELS", "🏆 AUDITOR PODIUM"])
 
-# --- PAGE 1: SCANNER (LANDING) ---
-if page == "📡 SCANNER":
+# --- 3. PAGE 1: SCANNER (THE LANDING PAGE) ---
+if page == "📡 SCANNER (LANDING)":
     st.markdown('<h1 class="search-title">🛡️ DYER SENTINEL</h1>', unsafe_allow_html=True)
     st.markdown('<p style="text-align: center; color: #8B949E;">14 CHAPTER RESEARCH | 120-DAY AUDIT CYCLE</p>', unsafe_allow_html=True)
     
-    # The Main Search Bar
-    ticker = st.text_input("", placeholder="TYPE TICKER (e.g. NVDA, COST, AMC)").upper()
+    # Large Search Bar
+    ticker = st.text_input("", placeholder="TYPE TICKER (NVDA, COST, AMC)...").upper()
     
     if ticker:
         try:
+            # Data Fetching
             stock = yf.Ticker(ticker)
-            info = stock.info
+            price = stock.fast_info['last_price']
             
-            # DYER SCORE MATH (Rushmore Metric)
-            # Stability (Fixed 100) + Management (Slider) + Moat (Select)
-            st.sidebar.subheader("Forensic Controls")
+            # Dyer Score Controls (Manual Sliders)
+            st.sidebar.markdown("---")
+            st.sidebar.subheader("Forensic Inputs")
             mgmt = st.sidebar.slider("Management Quality", 0, 100, 80)
-            moat_opt = st.sidebar.select_slider("Moat Strength", options=["Decaying", "Stable", "Expanding"], value="Stable")
-            moat_pts = {"Decaying": 0, "Stable": 50, "Expanding": 100}[moat_opt]
-            score = 100 + mgmt + moat_pts
-
-            # THE DIAL (Progress Bar Representation)
+            moat = st.sidebar.select_slider("Moat Strength", options=[0, 50, 100], value=50)
+            score = 100 + mgmt + moat # Rushmore Metric Base
+            
+            # THE DIAL / GAUGE
             st.markdown("---")
-            st.write(f"### CONVICTION DIAL: {ticker}")
-            
-            # Visual logic for the "Dial"
             if score < 150:
-                st.error(f"VERDICT: {score}/300 - 🚨 TRAPDOOR SELL")
-                progress_color = "red"
+                st.error(f"VERDICT: {score}/300 | 🚨 TRAPDOOR SELL")
+                label = "🔴 SELL"
             elif score >= 200:
-                st.success(f"VERDICT: {score}/300 - 💎 SOVEREIGN BUY")
-                progress_color = "green"
+                st.success(f"VERDICT: {score}/300 | 💎 SOVEREIGN BUY")
+                label = "🟢 BUY"
             else:
-                st.warning(f"VERDICT: {score}/300 - ⚖️ AUDIT HOLD")
-                progress_color = "orange"
-            
+                st.warning(f"VERDICT: {score}/300 | ⚖️ AUDIT HOLD")
+                label = "🟡 HOLD"
+                
             st.progress(score / 300)
+            
+            # Forensic Vitals Grid
+            st.markdown("### Forensic Vitals")
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Current Price", f"${price:.2f}")
+            c2.metric("Rushmore Score", f"{score}/300")
+            c3.metric("Conviction", label)
+            
+        except Exception as e:
+            st.info("Input ticker to begin forensic scan.")
 
-            # THE CORE 5 VITALS
-            st.markdown("#### Forensic Vitals")
-            v1, v2, v3, v4, v5 = st.columns(5)
-            v1.metric("Margin", f"{info.get('profitMargins', 0)*100:.1f}%")
-            v2.metric("Growth", f"{info.get('revenueGrowth', 0)*100:.1f}%")
-            v3.metric("Debt/Eq", info.get('debtToEquity', 'N/A'))
-            v4.metric("ROIC", f"{info.get('returnOnEquity', 0)*100:.1f}%")
-            v5.metric("Yield", f"{info.get('dividendYield', 0)*100:.2f}")
-
-        except:
-            st.info("Scanner calibrating... Please enter a valid ticker.")
-
-# --- PAGE 2: THE 5 MODELS ---
+# --- 4. PAGE 2: THE 5 MODELS ---
 elif page == "🧪 THE 5 MODELS":
-    st.title("🧪 Experimental Model Lab")
-    st.subheader("Quarterly Audit Status")
+    st.title("🧪 The 5 Experimental Models")
+    st.write("3-Year Strategy Cycle | Rebalance every 120 Days")
     
     m_cols = st.columns(5)
     model_data = [
-        ("MODEL A", "Cull Strategy", 245, "PASS"),
-        ("MODEL B", "90-Day Rebalance", 210, "AUDIT"),
-        ("MODEL C", "High Premium", 265, "PASS"),
-        ("MODEL D", "Value/Asset", 185, "FAIL"),
-        ("MODEL E", "Anti-Model", 82, "TRAP")
+        ("MODEL A", "Cull Strategy", 245, "PASSING"),
+        ("MODEL B", "90-Day Rebalance", 210, "STABLE"),
+        ("MODEL C", "High Premium", 265, "PASSING"),
+        ("MODEL D", "Value/Asset", 185, "FAILING"),
+        ("MODEL E", "Anti-Model", 82, "TRAPDOOR")
     ]
     
     for i, (name, desc, s, status) in enumerate(model_data):
         with m_cols[i]:
             st.markdown(f"""<div class="model-card">
-                <h3>{name}</h3><p>{desc}</p><h2>{s}</h2><b>{status}</b>
+                <h3>{name}</h3><p style='color:gray;'>{desc}</p><h1>{s}</h1><b>{status}</b>
             </div>""", unsafe_allow_html=True)
 
-# --- PAGE 3: PODIUM ---
+# --- 5. PAGE 3: PODIUM ---
 elif page == "🏆 AUDITOR PODIUM":
     st.title("🏆 Auditor Podium")
-    st.markdown("### Race to Chapter 14")
+    st.write("Tracking audit points for the 14-chapter study.")
     
-    podium_df = pd.DataFrame({
-        "Rank": ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th"],
+    df = pd.DataFrame({
         "Auditor": ["YOU (SOV-00)", "ANNE", "PABLO", "MIKE", "MOM", "DAD", "STEVE"],
         "Points": [1500, 1250, 1100, 950, 450, 300, 0],
-        "Chapter Rank": ["C-14", "C-12", "C-11", "C-09", "C-04", "C-02", "Pending"]
+        "Rank": ["C-14 Master", "C-12 Expert", "C-11 Senior", "C-09 Lead", "C-04 Junior", "C-02 Novice", "Trainee"]
     })
-    st.table(podium_df)
-    st.success("🔥 Anne is on a 5-day audit streak!")
+    st.table(df)
