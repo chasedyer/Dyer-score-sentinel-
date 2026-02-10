@@ -1,77 +1,66 @@
 import streamlit as st
 import pandas as pd
 import yfinance as yf
-import plotly.graph_objects as go
 
 # --- UI CONFIG ---
 st.set_page_config(page_title="Dyer Research Lab", layout="wide")
 
-# --- CUSTOM CSS ---
+# --- CLEAN TERMINAL STYLING ---
 st.markdown("""
     <style>
-    .stApp { background-color: #0E1117; color: #E0E0E0; }
-    .search-container { display: flex; flex-direction: column; align-items: center; padding-top: 30px; }
+    .stApp { background-color: #0E1117; color: #FFFFFF; font-family: 'Helvetica', sans-serif; }
+    .search-title { text-align: center; font-size: 50px; font-weight: bold; margin-bottom: 0px; color: #00FF41; }
     .stTextInput > div > div > input {
         background-color: #161B22; color: #00FF41; border: 2px solid #00FF41;
-        border-radius: 50px; padding: 20px 30px; font-size: 24px; text-align: center;
+        border-radius: 50px; padding: 25px; font-size: 24px; text-align: center;
     }
+    .model-card { background-color: #1C2128; border: 1px solid #30363D; padding: 15px; border-radius: 10px; text-align: center; }
     </style>
     """, unsafe_allow_html=True)
 
 # --- NAVIGATION ---
-page = st.sidebar.radio("LAB NAV", ["📡 SCANNER", "🧪 THE 5 MODELS", "🏆 PODIUM"])
+page = st.sidebar.radio("LAB NAVIGATION", ["📡 SCANNER", "🧪 THE 5 MODELS", "🏆 AUDITOR PODIUM"])
 
 # --- PAGE 1: SCANNER (LANDING) ---
 if page == "📡 SCANNER":
-    st.markdown('<div class="search-container">', unsafe_allow_html=True)
-    st.title("🛡️ DYER SENTINEL")
-    ticker = st.text_input("", placeholder="ENTER TICKER (NVDA, COST, AMC)").upper()
+    st.markdown('<h1 class="search-title">🛡️ DYER SENTINEL</h1>', unsafe_allow_html=True)
+    st.markdown('<p style="text-align: center; color: #8B949E;">14 CHAPTER RESEARCH | 120-DAY AUDIT CYCLE</p>', unsafe_allow_html=True)
+    
+    # The Main Search Bar
+    ticker = st.text_input("", placeholder="TYPE TICKER (e.g. NVDA, COST, AMC)").upper()
     
     if ticker:
         try:
             stock = yf.Ticker(ticker)
             info = stock.info
             
-            # --- DYER SCORE CALCULATION ---
-            # Using your Rushmore logic: Stability + Growth + Premium
+            # DYER SCORE MATH (Rushmore Metric)
+            # Stability (Fixed 100) + Management (Slider) + Moat (Select)
+            st.sidebar.subheader("Forensic Controls")
             mgmt = st.sidebar.slider("Management Quality", 0, 100, 80)
-            moat = st.sidebar.select_slider("Moat Strength", options=[0, 50, 100], value=50)
-            stability = 80 # Placeholder for asset quality
-            score = int(stability + mgmt + moat)
+            moat_opt = st.sidebar.select_slider("Moat Strength", options=["Decaying", "Stable", "Expanding"], value="Stable")
+            moat_pts = {"Decaying": 0, "Stable": 50, "Expanding": 100}[moat_opt]
+            score = 100 + mgmt + moat_pts
 
-            # --- CONVICTION DIAL ---
-            fig = go.Figure(go.Indicator(
-                mode = "gauge+number",
-                value = score,
-                domain = {'x': [0, 1], 'y': [0, 1]},
-                title = {'text': f"CONVICTION: {ticker}", 'font': {'size': 24}},
-                gauge = {
-                    'axis': {'range': [None, 300], 'tickwidth': 1, 'tickcolor': "white"},
-                    'bar': {'color': "white"},
-                    'bgcolor': "white",
-                    'borderwidth': 2,
-                    'bordercolor': "gray",
-                    'steps': [
-                        {'range': [0, 150], 'color': '#721c24'},  # TRAPDOOR
-                        {'range': [150, 200], 'color': '#856404'}, # AUDIT
-                        {'range': [200, 300], 'color': '#155724'}  # SOVEREIGN
-                    ],
-                    'threshold': {
-                        'line': {'color': "white", 'width': 4},
-                        'thickness': 0.75,
-                        'value': score
-                    }
-                }
-            ))
-            fig.update_layout(paper_bgcolor='#0E1117', font={'color': "white", 'family': "Arial"})
-            st.plotly_chart(fig, use_container_width=True)
+            # THE DIAL (Progress Bar Representation)
+            st.markdown("---")
+            st.write(f"### CONVICTION DIAL: {ticker}")
+            
+            # Visual logic for the "Dial"
+            if score < 150:
+                st.error(f"VERDICT: {score}/300 - 🚨 TRAPDOOR SELL")
+                progress_color = "red"
+            elif score >= 200:
+                st.success(f"VERDICT: {score}/300 - 💎 SOVEREIGN BUY")
+                progress_color = "green"
+            else:
+                st.warning(f"VERDICT: {score}/300 - ⚖️ AUDIT HOLD")
+                progress_color = "orange"
+            
+            st.progress(score / 300)
 
-            # --- DYNAMIC VERDICT ---
-            if score >= 200: st.success("💎 SOVEREIGN BUY")
-            elif score < 150: st.error("🚨 TRAPDOOR SELL")
-            else: st.warning("⚖️ AUDIT HOLD")
-
-            # Core 5 Vitals
+            # THE CORE 5 VITALS
+            st.markdown("#### Forensic Vitals")
             v1, v2, v3, v4, v5 = st.columns(5)
             v1.metric("Margin", f"{info.get('profitMargins', 0)*100:.1f}%")
             v2.metric("Growth", f"{info.get('revenueGrowth', 0)*100:.1f}%")
@@ -79,14 +68,39 @@ if page == "📡 SCANNER":
             v4.metric("ROIC", f"{info.get('returnOnEquity', 0)*100:.1f}%")
             v5.metric("Yield", f"{info.get('dividendYield', 0)*100:.2f}")
 
-        except: st.warning("Awaiting Asset Validation...")
-    st.markdown('</div>', unsafe_allow_html=True)
+        except:
+            st.info("Scanner calibrating... Please enter a valid ticker.")
 
-# --- PAGE 2 & 3 (RETAINED FROM PREVIOUS STEPS) ---
+# --- PAGE 2: THE 5 MODELS ---
 elif page == "🧪 THE 5 MODELS":
     st.title("🧪 Experimental Model Lab")
-    # ... [Same Model Grid Code] ...
+    st.subheader("Quarterly Audit Status")
+    
+    m_cols = st.columns(5)
+    model_data = [
+        ("MODEL A", "Cull Strategy", 245, "PASS"),
+        ("MODEL B", "90-Day Rebalance", 210, "AUDIT"),
+        ("MODEL C", "High Premium", 265, "PASS"),
+        ("MODEL D", "Value/Asset", 185, "FAIL"),
+        ("MODEL E", "Anti-Model", 82, "TRAP")
+    ]
+    
+    for i, (name, desc, s, status) in enumerate(model_data):
+        with m_cols[i]:
+            st.markdown(f"""<div class="model-card">
+                <h3>{name}</h3><p>{desc}</p><h2>{s}</h2><b>{status}</b>
+            </div>""", unsafe_allow_html=True)
 
-elif page == "🏆 PODIUM":
+# --- PAGE 3: PODIUM ---
+elif page == "🏆 AUDITOR PODIUM":
     st.title("🏆 Auditor Podium")
-    # ... [Leaderboard including Anne, Pablo, Mike, Mom, Dad] ...
+    st.markdown("### Race to Chapter 14")
+    
+    podium_df = pd.DataFrame({
+        "Rank": ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th"],
+        "Auditor": ["YOU (SOV-00)", "ANNE", "PABLO", "MIKE", "MOM", "DAD", "STEVE"],
+        "Points": [1500, 1250, 1100, 950, 450, 300, 0],
+        "Chapter Rank": ["C-14", "C-12", "C-11", "C-09", "C-04", "C-02", "Pending"]
+    })
+    st.table(podium_df)
+    st.success("🔥 Anne is on a 5-day audit streak!")
