@@ -1,95 +1,76 @@
 import streamlit as st
 import pandas as pd
-import requests
 
-# 1. ATTEMPT DATA LINK
-try:
-    import yfinance as yf
-    DATA_LINK = True
-except ImportError:
-    DATA_LINK = False
-
-# 2. UI SETTINGS
-st.set_page_config(page_title="Dyer Global Audit", layout="wide")
+# --- 1. INTERFACE SETTINGS ---
+st.set_page_config(page_title="Dyer Score Terminal", layout="wide")
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; color: white; }
-    .search-title { text-align: center; font-size: 48px; font-weight: bold; color: #00FF41; }
+    .search-title { text-align: center; font-size: 50px; font-weight: bold; color: #00FF41; }
+    .metric-header { color: #00FF41; font-weight: bold; font-size: 20px; border-bottom: 1px solid #30363D; margin-bottom: 10px; }
     .stButton>button { width: 100%; background-color: #00FF41; color: black; font-weight: bold; height: 3.5em; border-radius: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. AUTOFILL ENGINE
-def search_directory(query):
-    if not query or len(query) < 2: return []
-    url = f"https://query2.finance.yahoo.com/v1/finance/search?q={query}"
-    try:
-        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}).json()
-        return [f"{q['symbol']} - {q['shortname']}" for q in r.get('quotes', []) if 'symbol' in q]
-    except: return []
+# --- 2. COMMAND NAVIGATION ---
+page = st.sidebar.radio("COMMAND", ["📡 DYER SCANNER", "🔬 CORE 23 HUB", "🏆 AUDITOR PODIUM"])
 
-# 4. MAIN INTERFACE
-st.sidebar.title("🛡️ Dyer Command")
-page = st.sidebar.selectbox("TASK", ["📡 AUDIT SCANNER", "🔬 CORE 23 HUB", "🧪 MODEL A/B LOGIC"])
-
-if page == "📡 AUDIT SCANNER":
+if page == "📡 DYER SCANNER":
     st.markdown('<h1 class="search-title">🛡️ DYER SENTINEL</h1>', unsafe_allow_html=True)
+    st.markdown('<p style="text-align: center; color: #8B949E;">300-POINT RUSHMORE METRIC | CHAPTER 14 AUDIT</p>', unsafe_allow_html=True)
+
+    # SEARCH
+    ticker = st.text_input("ENTER COMPANY NAME OR TICKER", "COSTCO").upper()
+
+    # THE THREE BUCKETS (Sidebar Controls)
+    st.sidebar.header("📊 Audit Sliders")
+    s_score = st.sidebar.slider("Stability (Asset Quality)", 0, 100, 85)
+    g_score = st.sidebar.slider("Growth (Expansion Capacity)", 0, 100, 75)
+    p_score = st.sidebar.slider("Premium (Management/Moat)", 0, 100, 90)
     
-    # LIVE SEARCH BAR
-    search_q = st.text_input("TYPE COMPANY NAME (Autofills Ticker)", placeholder="e.g. Costco, Nvidia...")
-    suggestions = search_directory(search_q)
-    
-    if suggestions:
-        selected_stock = st.selectbox("MATCH FOUND:", suggestions)
-        ticker = selected_stock.split(" - ")[0]
-    else:
-        ticker = search_q.upper()
+    total_score = s_score + g_score + p_score
 
     if st.button("CALCULATE DYER SCORE"):
-        if ticker:
-            with st.spinner(f"Auditing {ticker}..."):
-                # DATA RETRIEVAL WITH BACKUP
-                if DATA_LINK:
-                    try:
-                        stock = yf.Ticker(ticker)
-                        info = stock.info
-                        mgn = info.get('operatingMargins', 0) * 100
-                        rev = info.get('revenueGrowth', 0) * 100
-                        price = info.get('currentPrice', 0)
-                        # ROIC Calculation
-                        ebit = info.get('ebitda', 1) * 0.8
-                        cap = (info.get('totalStockholderEquity', 1) + info.get('totalDebt', 0) - info.get('totalCash', 0))
-                        roic = (ebit / cap) * 100 if cap > 0 else 0
-                    except:
-                        mgn, rev, roic, price = 0, 0, 0, 0
-                else:
-                    mgn, rev, roic, price = 0, 0, 0, 0 # Manual override mode
+        st.markdown("---")
+        
+        # FINAL VERDICT HEADER
+        if total_score >= 200:
+            st.success(f"💎 {ticker} VERDICT: SOVEREIGN BUY ({total_score}/300)")
+        elif total_score < 150:
+            st.error(f"🚨 {ticker} VERDICT: TRAPDOOR SELL ({total_score}/300)")
+        else:
+            st.warning(f"⚖️ {ticker} VERDICT: AUDIT HOLD ({total_score}/300)")
 
-                # VITALS GRID
-                st.markdown(f"### 📊 Forensic Vitals: {ticker}")
-                c1, c2, c3, c4 = st.columns(4)
-                c1.metric("Op. Margin", f"{mgn:.1f}%" if mgn else "OFFLINE")
-                c2.metric("Growth (YoY)", f"{rev:.1f}%" if rev else "OFFLINE")
-                c3.metric("ROIC", f"{roic:.1f}%" if roic else "OFFLINE")
-                c4.metric("Live Price", f"${price:.2f}" if price else "OFFLINE")
+        # SUB-PART FORENSIC BREAKDOWN
+        col1, col2, col3 = st.columns(3)
 
-                # THE RUSHMORE BUCKETS
-                st.sidebar.markdown("---")
-                s1 = st.sidebar.slider("Stability (Asset Quality)", 0, 100, 80)
-                s2 = st.sidebar.slider("Growth (Capacity)", 0, 100, 80)
-                s3 = st.sidebar.slider("Premium (Management)", 0, 100, 80)
-                total = s1 + s2 + s3
-                
-                st.markdown("---")
-                if total >= 200: st.success(f"💎 SOVEREIGN BUY | SCORE: {total}/300")
-                elif total < 150: st.error(f"🚨 TRAPDOOR SELL | SCORE: {total}/300")
-                else: st.warning(f"⚖️ AUDIT HOLD | SCORE: {total}/300")
+        with col1:
+            st.markdown('<div class="metric-header">STABILITY (Asset Quality)</div>', unsafe_allow_html=True)
+            st.write(f"**Score:** {s_score}/100")
+            st.write("1. Operating Margin Trend")
+            st.write("2. ROIC Consistency")
+            st.write("3. Debt-to-Equity Shield")
+
+        with col2:
+            st.markdown('<div class="metric-header">GROWTH (Expansion)</div>', unsafe_allow_html=True)
+            st.write(f"**Score:** {g_score}/100")
+            st.write("1. Revenue Growth Rate")
+            st.write("2. Market Share Velocity")
+            st.write("3. Capex Efficiency")
+
+        with col3:
+            st.markdown('<div class="metric-header">PREMIUM (Management)</div>', unsafe_allow_html=True)
+            st.write(f"**Score:** {p_score}/100")
+            st.write("1. Founder/CEO Alignment")
+            st.write("2. Brand Pricing Power")
+            st.write("3. Entry Barrier (Moat)")
 
 elif page == "🔬 CORE 23 HUB":
     st.title("🔬 Core 23 Audit Cycle")
-    st.info("Rebalance every 120 days. Rule: 10% Dyer improvement or FAIL.")
+    st.info("Goal: 10% Score Improvement every 120 days.")
     st.table(pd.DataFrame({
-        "Ticker": ["COST", "MSFT", "V", "WM", "DE", "AAPL", "NVDA", "GOOGL", "AMZN", "META"],
-        "Dyer Score": [285, 278, 270, 265, 260, 255, 288, 240, 245, 250],
-        "120-Day Delta": ["+12%", "+5%", "+11%", "-2%", "+15%", "+8%", "+22%", "-1%", "+4%", "+9%"]
+        "Ticker": ["COST", "MSFT", "V", "WM", "DE"],
+        "Last Audit": ["275", "260", "250", "230", "220"],
+        "Current Audit": [s_score+g_score+p_score if ticker=="COST" else "---" for _ in range(5)],
+        "120-Day Delta": ["Pending", "Pending", "Pending", "Pending", "Pending"]
     }))
