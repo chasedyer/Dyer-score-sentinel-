@@ -1,87 +1,82 @@
 import streamlit as st
 import yfinance as yf
-import pandas as pd
 
-st.set_page_config(page_title="Dyer Score Sentinel", layout="wide")
+# --- UI CONFIG ---
+st.set_page_config(page_title="Dyer Sentinel", layout="centered")
 
-# --- Sovereign Admin Logic ---
-if 'query_log' not in st.session_state:
-    st.session_state.query_log = []
+# --- CUSTOM THEME (TRAFFIC LIGHT LOGIC) ---
+def apply_style(score):
+    if score < 150:
+        bg_color, text = "#721c24", "🚨 TRAPDOOR SELL" # Deep Red
+    elif score >= 200:
+        bg_color, text = "#155724", "💎 SOVEREIGN BUY" # Emerald Green
+    else:
+        bg_color, text = "#856404", "⚖️ AUDIT HOLD"    # Amber
+    
+    st.markdown(f"""
+        <style>
+        .stApp {{ background-color: #0E1117; }}
+        .verdict-banner {{
+            background-color: {bg_color};
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            color: white;
+            font-weight: bold;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }}
+        </style>
+        <div class="verdict-banner">{text}</div>
+    """, unsafe_allow_html=True)
+    return text
 
-st.sidebar.title("🛡️ Sentinel Access")
-sovereign_id = st.sidebar.text_input("Enter Sovereign ID", value="SOVEREIGN-01")
-is_admin = sovereign_id == "SOVEREIGN-00"
-
-# --- Main App ---
-st.title("The Dyer Score™")
-ticker = st.text_input("Enter Ticker", value="NVDA").upper()
+# --- APP LOGIC ---
+st.title("🛡️ Dyer Sentinel Terminal")
+ticker = st.text_input("SCAN TICKER", value="COST").upper()
 
 if ticker:
     try:
         stock = yf.Ticker(ticker)
         info = stock.info
         
-        # 1. Forensic Metrics (The Top 5)
-        # Pulling actual data from yfinance for the Top 5
-        metrics = {
-            "Profit Margin": info.get('profitMargins', 0) * 100,
-            "Rev Growth": info.get('revenueGrowth', 0) * 100,
-            "Debt-to-Equity": info.get('debtToEquity', 0),
-            "ROIC": info.get('returnOnAssets', 0) * 100, # Proxy for ROIC
-            "Cash Flow": info.get('freeCashflow', 0) / 1e9 # In Billions
-        }
-
-        # 2. Forensic Inputs (Manual Sliders)
-        st.subheader("Forensic Audit Inputs")
-        col_m, col_moat = st.columns(2)
-        with col_m:
-            mgmt = st.slider("Management Quality", 0, 100, 85, key=f"mgmt_{ticker}")
-        with col_moat:
-            moat = st.select_slider("Moat Capacity", options=["Decaying", "Stable", "Expanding"], value="Stable", key=f"moat_{ticker}")
-        
+        # 1. CORE FORENSIC INPUTS
+        st.subheader("Forensic Inputs")
+        mgmt = st.slider("Management Quality", 0, 100, 85)
+        moat = st.select_slider("Moat Strength", options=["Decaying", "Stable", "Expanding"], value="Stable")
         moat_pts = {"Decaying": 0, "Stable": 50, "Expanding": 100}[moat]
         
-        # Final Score Calculation
-        # Simple formula: (De-risked Stability) + Management + Moat
-        de_risk = max(0, 100 - (metrics["Debt-to-Equity"] / 5))
-        final_score = int(de_risk + mgmt + moat_pts)
-
-        # --- THE THREE CLOCKS (Visual Status) ---
-        st.markdown("---")
-        c1, c2, c3 = st.columns(3)
+        # 2. THE DYER SCORE (Rushmore Metric)
+        # Simplified for clarity: Stability + Management + Moat
+        stability = 100 # Base asset quality proxy
+        final_score = int(stability + mgmt + moat_pts)
         
-        def get_status(score):
-            if score < 150: return "🔴 SELL", "#FF4B4B"
-            if score < 240: return "🟡 HOLD", "#FFAA00"
-            return "🟢 BUY", "#00CC96"
+        # 3. THE VERDICT BANNER
+        verdict_text = apply_style(final_score)
+        
+        # 4. THE MASTER SCORE
+        st.markdown(f"<h1 style='text-align: center; font-size: 80px;'>{final_score}</h1>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; color: gray;'>Dyer Score (Max 300)</p>", unsafe_allow_html=True)
 
-        status, color = get_status(final_score)
+        # 5. CORE 5 VITALS (The Useful Stuff)
+        st.markdown("---")
+        v1, v2, v3 = st.columns(3)
+        v1.metric("Profit Margin", f"{info.get('profitMargins', 0)*100:.1f}%")
+        v2.metric("Rev Growth", f"{info.get('revenueGrowth', 0)*100:.1f}%")
+        v3.metric("Debt/Equity", info.get('debtToEquity', 'N/A'))
 
-        with c1:
-            st.metric("3 MONTH OUTLOOK", status)
-            st.caption("Short-term Asset Quality")
-        with c2:
-            st.metric("6 MONTH OUTLOOK", status)
-            st.caption("Expansion Capacity")
-        with c3:
-            st.metric("12 MONTH OUTLOOK", status)
-            st.caption("Sovereign Trajectory")
+        # 6. SHARING (Wordle Mode)
+        st.markdown("---")
+        if st.button("📤 Generate Share Report"):
+            share_block = f"🛡️ Dyer Audit: ${ticker}\n🎯 Score: {final_score}/300\n{verdict_text}\n#DyerSentinel"
+            st.code(share_block)
+            st.success("Copied! Paste this into the family chat.")
 
-        # --- TOP 5 FORENSIC DATA ---
-        st.markdown(f"### Top 5 Forensic Metrics for {ticker}")
-        f_cols = st.columns(5)
-        for i, (name, val) in enumerate(metrics.items()):
-            f_cols[i].metric(name, f"{val:.1f}")
+    except Exception:
+        st.warning("Please enter a valid ticker to scan.")
 
-        # --- ADMIN LOGGING ---
-        if st.button("Flag for Steve (Gold LLC)"):
-            st.session_state.query_log.append({"ID": sovereign_id, "Ticker": ticker, "Score": final_score})
-            st.success("Flagged for Audit Review.")
-
-    except Exception as e:
-        st.error(f"Search for a valid Ticker to begin. Error: {e}")
-
-if is_admin:
-    st.sidebar.markdown("---")
-    st.sidebar.write("### Auditor Master Log")
-    st.sidebar.dataframe(pd.DataFrame(st.session_state.query_log))
+# Sidebar Leaderboard
+st.sidebar.title("🏆 Leaderboard")
+st.sidebar.write("1. YOU (SOV-00) - 150 pts")
+st.sidebar.write("2. MOM (SOV-01) - 45 pts")
+st.sidebar.write("3. DAD (SOV-02) - 30 pts")
