@@ -1,37 +1,32 @@
 import pandas as pd
 
-# Finalized 7 Portfolio Matrix
-portfolios = {
-    "Model A (Velocity)": ["PLTR", "ARM", "PGR", "ANET", "VRT", "DKNG", "HIMS", "CELH", "MDB", "UBER"],
-    "Model B (Core)": ["CDNS", "LRCX", "TMO", "INTU", "ACN", "ORCL", "SYK", "TJX", "LIN", "RS"],
-    "Model C (Excavation)": ["SBUX", "NKE", "PYPL", "LULU", "DIS", "TSLA", "UPS", "ENPH", "MMM", "BA"],
-    "Model D (Sovereign)": ["MSFT", "COST", "V", "WM", "DE", "ASML", "LLY", "CP", "NEE", "BRK-B"],
-    "Model E (Anti-Model)": ["NKLA", "SAVE", "AMC", "CVNA", "PTON", "BYND", "LCID", "RILY", "GME", "WBA"],
-    "Model F (Rushmore)": ["MELI", "AXON", "IOT", "SHOP", "DDOG", "DUOL", "BWXT", "COIN", "PINS", "U"],
-    "Model G (Spec Alpha)": ["PANW", "BKH", "BFLY", "NSA", "DUOT", "NBIS", "PUBM", "BKRRF", "INSG", "CLFD"]
-}
+# Core Universe: The Core 13 + Waitlist
+universe = ["MELI", "SHOP", "DDOG", "IOT", "AXON", "CRWD", "SNOW", "U", "PINS", "COIN", "DUOL", "BWXT", "NOW"]
+waitlist = ["RDDT", "TTAN"]
 
-# Dyer Score Tracking & Performance Logic
-def update_tab_2_dashboard(price_data, current_dyer_scores):
-    summary_table = []
+# Allocation: $10,000 per Model ($1,000 per holding)
+def get_shares_baseline(prices):
+    # Focus: Model F (Rushmore 10)
+    rushmore_10 = ["MELI", "AXON", "IOT", "SHOP", "DDOG", "DUOL", "BWXT", "COIN", "PINS", "U"]
+    ledger = {}
     
-    for model_name, tickers in portfolios.items():
-        for ticker in tickers:
-            # Calculate YTD Performance
-            ytd_pct = (price_data[ticker]['current'] / price_data[ticker]['ytd_start'] - 1) * 100
-            perf_color = "green" if ytd_pct >= 0 else "red"
-            
-            # Fetch Dyer Scores (Stability, Growth, Premium)
-            scores = current_dyer_scores.get(ticker, {"S": 0, "G": 0, "P": 0})
-            total_dyer = scores['S'] + scores['G'] + scores['P']
-            
-            summary_table.append({
-                "Model": model_name,
-                "Holding": ticker,
-                "Dyer Score": f"{total_dyer}/300",
-                "YTD %": f"{ytd_pct:.2f}%",
-                "Color": perf_color,
-                "Shares": 1000 // price_data[ticker]['ytd_start'] # 0.5 rounding rule applied at execution
-            })
-    
-    return pd.DataFrame(summary_table)
+    for ticker in rushmore_10:
+        px = prices.get(ticker, 1.0)
+        target_allocation = 1000
+        raw_qty = target_allocation / px
+        
+        # Applying the 0.5 Rounding Rule
+        if (raw_qty % 1) >= 0.5:
+            qty = int(raw_qty) + 1
+        else:
+            qty = int(raw_qty)
+        
+        ledger[ticker] = qty
+    return ledger
+
+# Dyer Score Audit Protocol
+audit_rules = {
+    "cycle_days": 120,
+    "target_improvement": 0.10, # 10% gain in score or fail
+    "rebalance_model_b": 90    # 90-day equal weight reset
+}
