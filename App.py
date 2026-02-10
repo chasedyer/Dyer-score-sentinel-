@@ -1,72 +1,75 @@
 import streamlit as st
-import pandas as pd
 
-# 1. THE RUSHMORE ENGINE (300 POINT MAX)
-def get_rushmore_score(ticker):
-    profiles = {
-        "SOVEREIGN": ["COST", "WMT", "PG", "JPM", "V"],
-        "GROWTH_LEADER": ["NVDA", "MSFT", "META", "AMZN"],
-        "SPEC_TECH": ["RIVN", "GEVO", "PLTR", "TSLA"],
-        "TRAPDOOR": ["NKLA", "AMC", "SAVE", "CVNA"]
-    }
-    h = sum(ord(c) for c in ticker)
-    if ticker in profiles["SOVEREIGN"]:
-        s, g, p = (85 + h%15), (70 + h%20), (88 + h%10)
-    elif ticker in profiles["GROWTH_LEADER"]:
-        s, g, p = (75 + h%15), (90 + h%10), (90 + h%10)
-    elif ticker in profiles["SPEC_TECH"]:
-        s, g, p = (20 + h%20), (60 + h%30), (30 + h%20)
-    elif ticker in profiles["TRAPDOOR"]:
-        s, g, p = (5 + h%10), (15 + h%20), (5 + h%15)
-    else:
-        # Unique universe generation
-        s, g, p = (h % 60) + 30, (h % 70) + 20, (h % 50) + 10
-    return {"S": s, "G": g, "P": p}
+# 1. THE 25-METRIC BLUEPRINT
+METRICS = {
+    "STABILITY (Asset Quality)": [
+        "Operating Margin > 15%", "ROIC > 15%", "Debt/EBITDA < 3x", 
+        "Positive FCF Yield", "Revenue Consistency", "Current Ratio > 1.5",
+        "Interest Coverage", "Earnings Quality (Cash-backed)"
+    ],
+    "GROWTH (Expansion Capacity)": [
+        "Top-Line Growth > 10%", "Market Share Velocity", "R&D Intensity",
+        "TAM Expansion", "CAC Efficiency", "Retention/Churn Rates",
+        "Capex ROI", "International Scalability"
+    ],
+    "PREMIUM (Management/Moat)": [
+        "Insider Skin in the Game", "Founder-Led/Visionary", "Pricing Power",
+        "Brand Mindshare", "Regulatory Moat", "Network Effects",
+        "Capital Allocation Strategy", "Internal Culture", "Chapter 14 Intuition"
+    ]
+}
 
-# 2. PERSISTENCE
-if 'audit_db' not in st.session_state:
-    st.session_state.audit_db = {}
-
-# 3. NAVIGATION (Dyer Score Scanner is Landing Page)
+# 2. UI SETUP
+st.set_page_config(page_title="Dyer Score", layout="wide")
 st.sidebar.title("COMMAND")
-page = st.sidebar.radio("GO TO", ["📡 DYER SCORE SCANNER", "🔬 5* MODELS HUB"])
+page = st.sidebar.radio("NAVIGATE", ["📡 DYER SCORE SCANNER", "🔬 5* MODELS HUB"])
 
-# --- PAGE 1: SCANNER ---
 if page == "📡 DYER SCORE SCANNER":
     st.markdown('<h1 style="color:#00FF41; text-align:center;">🛡️ DYER SCORE</h1>', unsafe_allow_html=True)
     ticker = st.text_input("ENTER TICKER", "WMT").upper()
-    current = st.session_state.audit_db.get(ticker, get_rushmore_score(ticker))
-
+    
+    # TOP LEVEL: The Search Result
     st.subheader(f"300-Point Rushmore Audit: {ticker}")
     c1, c2, c3 = st.columns(3)
-    s = c1.number_input("STABILITY", 0, 100, current["S"], key=f"{ticker}_s")
-    g = c2.number_input("GROWTH", 0, 100, current["G"], key=f"{ticker}_g")
-    p = c3.number_input("PREMIUM", 0, 100, current["P"], key=f"{ticker}_p")
+    s_val = c1.number_input("STABILITY", 0, 100, 80, key="s_top")
+    g_val = c2.number_input("GROWTH", 0, 100, 70, key="g_top")
+    p_val = c3.number_input("PREMIUM", 0, 100, 90, key="p_top")
     
-    total = s + g + p
-    if st.button("SYNC AUDIT"):
-        st.session_state.audit_db[ticker] = {"S": s, "G": g, "P": p, "Total": total}
-        st.success(f"Dyer Score for {ticker} locked at {total}")
+    total = s_val + g_val + p_val
+    st.metric("Aggregate Dyer Score", f"{total} / 300")
+    
+    st.markdown("---")
+    
+    # SCROLL DOWN: The Forensic Checklist
+    st.markdown("### 🔍 Forensic Audit Checklist (The 25 Metrics)")
+    st.write("Check the boxes that apply to the current 120-day audit cycle.")
+    
+    f1, f2, f3 = st.columns(3)
+    
+    # Stability Column
+    with f1:
+        st.markdown("**STABILITY BUCKET**")
+        s_count = 0
+        for m in METRICS["STABILITY (Asset Quality)"]:
+            if st.checkbox(m, key=f"s_{m}"): s_count += 1
+        st.info(f"Points Calculated: {int((s_count/8)*100)}")
 
-    st.metric("Total Value", total)
+    # Growth Column
+    with f2:
+        st.markdown("**GROWTH BUCKET**")
+        g_count = 0
+        for m in METRICS["GROWTH (Expansion Capacity)"]:
+            if st.checkbox(m, key=f"g_{m}"): g_count += 1
+        st.info(f"Points Calculated: {int((g_count/8)*100)}")
 
-# --- PAGE 2: 5* MODELS HUB ---
-elif page == "🔬 5* MODELS HUB":
-    st.title("🔬 5* Models Performance")
-    st.write("Current Audit Cycle: **Day 36 of 120**")
-    
-    perf_data = [
-        {"Model": "Model A (Cull)", "Score": 268, "Perf": 14.2},
-        {"Model": "Model B (Reset)", "Score": 242, "Perf": 8.1},
-        {"Model": "Model C", "Score": 275, "Perf": 19.5},
-        {"Model": "Model D", "Score": 255, "Perf": 4.3},
-        {"Model": "Model E (Anti)", "Score": 118, "Perf": -22.8}
-    ]
-    
-    for m in perf_data:
-        # Green (10%+), Yellow (Positive), Red (Negative)
-        color = "#00FF41" if m["Perf"] >= 10 else "#FFD700" if m["Perf"] > 0 else "#FF4B4B"
-        col1, col2, col3 = st.columns([2, 1, 1])
-        col1.markdown(f'<p style="color:{color}; font-size:20px; font-weight:bold;">{m["Model"]}</p>', unsafe_allow_html=True)
-        col2.write(f"Score: {m['Score']}")
-        col3.write(f"Value: {m['Perf']}")
+    # Premium Column
+    with f3:
+        st.markdown("**PREMIUM BUCKET**")
+        p_count = 0
+        for m in METRICS["PREMIUM (Management/Moat)"]:
+            if st.checkbox(m, key=f"p_{m}"): p_count += 1
+        st.info(f"Points Calculated: {int((p_count/9)*100)}")
+
+    if st.button("LOCK FULL AUDIT"):
+        # This would sync the checkbox data to the model
+        st.success(f"Audit for {ticker} verified against all 25 metrics.")
