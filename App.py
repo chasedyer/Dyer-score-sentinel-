@@ -4,61 +4,63 @@ import pandas as pd
 # --- UI CONFIG ---
 st.set_page_config(page_title="Dyer Research Lab", layout="wide")
 
-# --- CUSTOM CSS FOR CLEAN CARDS ---
+# --- NEON TERMINAL STYLING ---
 st.markdown("""
     <style>
-    .model-card {
-        background-color: #161B22;
-        border: 1px solid #30363D;
-        padding: 20px;
-        border-radius: 12px;
-        text-align: center;
-        margin-bottom: 20px;
+    .stApp { background-color: #0E1117; color: #00FF41; }
+    .search-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 100px;
     }
-    .status-pass { color: #238636; font-weight: bold; }
-    .status-fail { color: #DA3633; font-weight: bold; }
+    .stTextInput > div > div > input {
+        background-color: #161B22;
+        color: #00FF41;
+        border: 2px solid #00FF41;
+        border-radius: 50px;
+        padding: 20px 30px;
+        font-size: 24px;
+        text-align: center;
+    }
+    .audit-stat { color: #8B949E; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; }
     </style>
     """, unsafe_allow_html=True)
 
 # --- NAVIGATION ---
-nav = st.sidebar.radio("Lab Navigation", ["🏛️ Research Homepage", "📡 Asset Scanner"])
+page = st.sidebar.radio("LAB NAV", ["📡 SCANNER", "🧪 MODELS", "🏆 PODIUM"])
 
-if nav == "🏛️ Research Homepage":
-    st.title("🔬 The 14-Chapter Lab")
-    st.subheader("120-Day Audit Cycle: **84 Days Remaining**")
+# --- PAGE 1: CATCHY SCANNER (LANDING) ---
+if page == "📡 SCANNER":
+    st.markdown('<div class="search-container">', unsafe_allow_html=True)
+    st.title("🛡️ DYER SENTINEL")
+    st.markdown('<p class="audit-stat">RESEARCHING 14 CHAPTERS | 120-DAY CYCLE</p>', unsafe_allow_html=True)
     
-    # 5-Model Simulation Data
-    models = {
-        "Model A (Cull Strategy)": {"Score": 245, "Delta": "+12%", "Status": "PASSING"},
-        "Model B (90-Day Rebalance)": {"Score": 210, "Delta": "+4%", "Status": "AUDIT REQ"},
-        "Model C (High Premium)": {"Score": 265, "Delta": "+15%", "Status": "PASSING"},
-        "Model D (Value/Asset)": {"Score": 185, "Delta": "-2%", "Status": "FAILING"},
-        "Model E (Anti-Model)": {"Score": 82, "Delta": "-20%", "Status": "TRAPDOOR"}
+    # The Catchy Search Bar
+    ticker = st.text_input("", placeholder="ENTER ASSET TICKER (e.g. NVDA, COST, AMC)").upper()
+    
+    if ticker:
+        # Simulate real-time forensic loading
+        with st.spinner(f"PERFORMING FORENSIC SCAN ON {ticker}..."):
+            # (Insert scoring/verdict logic from previous step here)
+            st.success(f"SCAN COMPLETE: {ticker} IS VALIDATED.")
+            st.markdown("### DYER SCORE: **284**")
+            st.markdown("---")
+            # Traffic Light Banners and Core 5 Vitals go here
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# --- PAGE 3: UPDATED PODIUM ---
+elif page == "🏆 PODIUM":
+    st.title("🏆 AUDITOR PODIUM")
+    
+    leaderboard_data = {
+        "Rank": ["1st", "2nd", "3rd", "4th", "5th", "6th"],
+        "Auditor": ["YOU (SOV-00)", "ANNE", "PABLO", "MIKE", "MOM", "DAD"],
+        "Points": [1500, 1250, 950, 800, 450, 300],
+        "Chapter": ["C-14", "C-12", "C-09", "C-08", "C-04", "C-02"]
     }
-
-    # Display 5 Models in a Grid
-    cols = st.columns(5)
-    for i, (name, data) in enumerate(models.items()):
-        with cols[i]:
-            status_class = "status-pass" if "PASSING" in data['Status'] else "status-fail"
-            st.markdown(f"""
-                <div class="model-card">
-                    <h4>{name}</h4>
-                    <h2 style="margin: 10px 0;">{data['Score']}</h2>
-                    <p>Cycle Delta: <b>{data['Delta']}</b></p>
-                    <p class="{status_class}">{data['Status']}</p>
-                </div>
-            """, unsafe_allow_html=True)
-
-    st.markdown("---")
-    st.subheader("🏁 Auditor Leaderboard")
-    st.table(pd.DataFrame({
-        "Auditor": ["YOU (SOV-00)", "MOM (SOV-01)", "DAD (SOV-02)"],
-        "Points": [150, 45, 30],
-        "Chapter Rank": ["Chapter 14: Master", "Chapter 4: Apprentice", "Chapter 2: Novice"]
-    }))
-
-elif nav == "📡 Asset Scanner":
-    # Scanner Code here
-    st.title("📡 Asset Scanner")
-    st.write("Scan a ticker to update the Dyer Score for the 120-day cycle.")
+    
+    # Display as a clean Podium Table
+    st.table(pd.DataFrame(leaderboard_data))
+    st.info("🎯 Mike is only 150 points away from passing Pablo!")
